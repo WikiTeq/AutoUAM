@@ -392,7 +392,7 @@ def health() -> None:
 @health.command()
 @click.option("--config", "-c", type=click.Path(), help="Configuration file path")
 @click.pass_context
-def check(ctx: click.Context, config: Optional[str]) -> None:
+def health_check(ctx: click.Context, config: Optional[str]) -> None:
     """Perform health check."""
     config_path = Path(config) if config else None
 
@@ -469,7 +469,7 @@ def terraform() -> None:
 @terraform.command()
 @click.option("--config", "-c", type=click.Path(), help="Configuration file path")
 @click.pass_context
-def status(ctx: click.Context, config: Optional[str]) -> None:
+def terraform_status(ctx: click.Context, config: Optional[str]) -> None:
     """Get status for Terraform external data source."""
     config_path = ctx.obj.get("config_path") or config
 

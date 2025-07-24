@@ -1,7 +1,7 @@
 """UAM management logic for AutoUAM."""
 
 import asyncio
-import time
+
 from typing import Optional
 
 from ..config.settings import Settings

@@ -1,8 +1,7 @@
 """Health check implementations for AutoUAM."""
 
-import asyncio
 import time
-from typing import Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
@@ -62,7 +61,8 @@ class HealthChecker:
             async with self.cloudflare_client as client:
                 if not await client.test_connection():
                     self.logger.error(
-                        "Failed to connect to Cloudflare API during health check initialization"
+                        "Failed to connect to Cloudflare API during health check "
+                        "initialization"
                     )
                     return False
 
@@ -74,7 +74,7 @@ class HealthChecker:
             return False
 
     @HEALTH_CHECK_DURATION.time()
-    async def check_health(self) -> Dict[str, any]:
+    async def check_health(self) -> Dict[str, Any]:
         """Perform comprehensive health check."""
         start_time = time.time()
         self._last_check = start_time
@@ -142,7 +142,7 @@ class HealthChecker:
                 },
             }
 
-    async def _check_system_load(self) -> Dict[str, any]:
+    async def _check_system_load(self) -> Dict[str, Any]:
         """Check system load health."""
         try:
             system_info = self.monitor.get_system_info()
@@ -179,7 +179,7 @@ class HealthChecker:
                 "error": str(e),
             }
 
-    async def _check_uam_state(self) -> Dict[str, any]:
+    async def _check_uam_state(self) -> Dict[str, Any]:
         """Check UAM state health."""
         try:
             state_summary = self.state_manager.get_state_summary()
@@ -207,7 +207,7 @@ class HealthChecker:
                 "error": str(e),
             }
 
-    async def _check_cloudflare_api(self) -> Dict[str, any]:
+    async def _check_cloudflare_api(self) -> Dict[str, Any]:
         """Check Cloudflare API health."""
         if not self.cloudflare_client:
             return {
@@ -246,13 +246,16 @@ class HealthChecker:
 
     def _determine_overall_health(
         self, load_info: Dict, uam_info: Dict, cloudflare_info: Dict
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """Determine overall health status."""
         checks = [load_info, uam_info, cloudflare_info]
         failed_checks = [check for check in checks if not check.get("healthy", True)]
 
         if failed_checks:
-            status = f"Health check failed: {', '.join([check.get('status', 'Unknown') for check in failed_checks])}"
+            failed_statuses = [
+                check.get('status', 'Unknown') for check in failed_checks
+            ]
+            status = f"Health check failed: {', '.join(failed_statuses)}"
             return {"healthy": False, "status": status}
 
         return {"healthy": True, "status": "All health checks passed"}
@@ -294,7 +297,7 @@ class HealthChecker:
         # Consider healthy if last success was within 5 minutes
         return (time.time() - self._last_success) < 300
 
-    def get_health_summary(self) -> Dict[str, any]:
+    def get_health_summary(self) -> Dict[str, Any]:
         """Get health summary."""
         return {
             "healthy": self.is_healthy(),

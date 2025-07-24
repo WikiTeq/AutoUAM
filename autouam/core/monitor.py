@@ -3,7 +3,7 @@
 import os
 import time
 from dataclasses import dataclass
-from typing import Optional
+
 
 from ..logging.setup import get_logger
 
