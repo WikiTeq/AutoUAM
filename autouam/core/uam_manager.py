@@ -49,10 +49,68 @@ class UAMManager:
             self.logger.error("Failed to initialize UAM manager", error=str(e))
             return False
 
+    async def _sync_state_with_cloudflare(self) -> None:
+        """Sync internal state with actual Cloudflare state."""
+        if not self.cloudflare_client:
+            self.logger.error("Cloudflare client not initialized")
+            return
+
+        try:
+            # Get current Cloudflare security level
+            async with self.cloudflare_client as client:
+                current_security_level = await client.get_current_security_level()
+
+            # Get current internal state
+            current_state = self.state_manager.load_state()
+
+            # Check if there's a mismatch
+            cloudflare_uam_active = current_security_level == "under_attack"
+
+            if cloudflare_uam_active != current_state.is_enabled:
+                self.logger.warning(
+                    "State mismatch detected, syncing with Cloudflare",
+                    cloudflare_state=current_security_level,
+                    internal_state_enabled=current_state.is_enabled,
+                )
+
+                # Update internal state to match Cloudflare
+                if cloudflare_uam_active:
+                    # UAM is active on Cloudflare but not in our state
+                    self.state_manager.update_state(
+                        is_enabled=True,
+                        load_average=current_state.load_average,
+                        threshold_used=self.config.monitoring.load_thresholds.upper,
+                        reason="UAM was already active when AutoUAM started",
+                    )
+                    self.logger.info("Synced state: UAM is active on Cloudflare")
+                else:
+                    # UAM is not active on Cloudflare but is in our state
+                    self.state_manager.update_state(
+                        is_enabled=False,
+                        load_average=current_state.load_average,
+                        threshold_used=self.config.monitoring.load_thresholds.lower,
+                        reason="UAM is not active on Cloudflare",
+                    )
+                    self.logger.info("Synced state: UAM is not active on Cloudflare")
+            else:
+                self.logger.info(
+                    "State is in sync with Cloudflare",
+                    uam_active=cloudflare_uam_active,
+                )
+
+        except Exception as e:
+            self.logger.error(
+                "Failed to sync state with Cloudflare",
+                error=str(e),
+            )
+
     async def run(self) -> None:
         """Run the main monitoring loop."""
         if not await self.initialize():
             raise RuntimeError("Failed to initialize UAM manager")
+
+        # Sync state with actual Cloudflare state on startup
+        await self._sync_state_with_cloudflare()
 
         self._running = True
         self.logger.info("Starting UAM monitoring loop")
