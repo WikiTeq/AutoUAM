@@ -60,7 +60,9 @@ class TerraformProvider:
                 "load_average": {
                     "one_minute": status["system"]["load_average"]["one_minute"],
                     "five_minute": status["system"]["load_average"]["five_minute"],
-                    "fifteen_minute": status["system"]["load_average"]["fifteen_minute"],
+                    "fifteen_minute": status["system"]["load_average"][
+                        "fifteen_minute"
+                    ],
                     "normalized": status["system"]["load_average"]["normalized"],
                 },
                 "processes": status["system"]["processes"],
@@ -88,7 +90,9 @@ class TerraformProvider:
                 "system_metrics": {
                     "one_minute": status["system"]["load_average"]["one_minute"],
                     "five_minute": status["system"]["load_average"]["five_minute"],
-                    "fifteen_minute": status["system"]["load_average"]["fifteen_minute"],
+                    "fifteen_minute": status["system"]["load_average"][
+                        "fifteen_minute"
+                    ],
                     "normalized": status["system"]["load_average"]["normalized"],
                 },
                 "processes": status["system"]["processes"],
@@ -97,7 +101,7 @@ class TerraformProvider:
                     "lower_threshold": self.config.monitoring.load_thresholds.lower,
                     "check_interval": self.config.monitoring.check_interval,
                     "minimum_duration": self.config.monitoring.minimum_uam_duration,
-                }
+                },
             }
         except Exception as e:
             self.logger.error("Failed to get status", error=str(e))
@@ -142,6 +146,7 @@ def main() -> None:
 
         # Execute query
         import asyncio
+
         result = asyncio.run(provider.execute_query(query))
 
         # Return result in Terraform format

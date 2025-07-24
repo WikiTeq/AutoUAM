@@ -15,7 +15,11 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.text import Text
 
 from ..config.settings import Settings
-from ..config.validators import validate_config, validate_config_file, generate_sample_config
+from ..config.validators import (
+    validate_config,
+    validate_config_file,
+    generate_sample_config,
+)
 from ..core.uam_manager import UAMManager
 from ..health.checks import HealthChecker
 from ..health.server import HealthServer
@@ -46,14 +50,37 @@ def print_info(message: str) -> None:
 
 @click.group()
 @click.version_option(version="0.1.0", prog_name="autouam")
-@click.option("--config", "-c", type=click.Path(exists=True), help="Configuration file path")
-@click.option("--log-level", "-l", type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]), default="INFO", help="Log level")
-@click.option("--dry-run", is_flag=True, help="Show what would be done without executing")
-@click.option("--format", type=click.Choice(["json", "yaml", "text"]), default="text", help="Output format")
+@click.option(
+    "--config", "-c", type=click.Path(exists=True), help="Configuration file path"
+)
+@click.option(
+    "--log-level",
+    "-l",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"]),
+    default="INFO",
+    help="Log level",
+)
+@click.option(
+    "--dry-run", is_flag=True, help="Show what would be done without executing"
+)
+@click.option(
+    "--format",
+    type=click.Choice(["json", "yaml", "text"]),
+    default="text",
+    help="Output format",
+)
 @click.option("--quiet", "-q", is_flag=True, help="Suppress output")
 @click.option("--verbose", "-V", is_flag=True, help="Verbose output")
 @click.pass_context
-def main(ctx: click.Context, config: Optional[str], log_level: str, dry_run: bool, format: str, quiet: bool, verbose: bool) -> None:
+def main(
+    ctx: click.Context,
+    config: Optional[str],
+    log_level: str,
+    dry_run: bool,
+    format: str,
+    quiet: bool,
+    verbose: bool,
+) -> None:
     """AutoUAM - Automated Cloudflare Under Attack Mode management."""
     ctx.ensure_object(dict)
     ctx.obj["config_path"] = config
@@ -74,12 +101,15 @@ def main(ctx: click.Context, config: Optional[str], log_level: str, dry_run: boo
     else:
         # Use basic logging setup
         from ..config.settings import LoggingConfig
+
         logging_config = LoggingConfig(level=log_level, output="stdout", format="text")
         setup_logging(logging_config)
 
 
 @main.command()
-@click.option("--config", "-c", type=click.Path(), required=True, help="Configuration file path")
+@click.option(
+    "--config", "-c", type=click.Path(), required=True, help="Configuration file path"
+)
 @click.pass_context
 def daemon(ctx: click.Context, config: str) -> None:
     """Run AutoUAM as a daemon."""
@@ -313,11 +343,13 @@ def generate(ctx: click.Context, output: Optional[str]) -> None:
         elif ctx.obj["format"] == "yaml":
             console.print(yaml.dump(sample_config, default_flow_style=False))
         else:
-            console.print(Panel(
-                yaml.dump(sample_config, default_flow_style=False),
-                title="Sample Configuration",
-                border_style="blue"
-            ))
+            console.print(
+                Panel(
+                    yaml.dump(sample_config, default_flow_style=False),
+                    title="Sample Configuration",
+                    border_style="blue",
+                )
+            )
 
 
 @config.command()
@@ -338,11 +370,13 @@ def show(ctx: click.Context, config: Optional[str]) -> None:
         elif ctx.obj["format"] == "yaml":
             console.print(yaml.dump(config_dict, default_flow_style=False))
         else:
-            console.print(Panel(
-                yaml.dump(config_dict, default_flow_style=False),
-                title="Current Configuration",
-                border_style="green"
-            ))
+            console.print(
+                Panel(
+                    yaml.dump(config_dict, default_flow_style=False),
+                    title="Current Configuration",
+                    border_style="green",
+                )
+            )
 
     except Exception as e:
         print_error(f"Failed to show configuration: {e}")
@@ -491,7 +525,9 @@ def display_status(result: dict) -> None:
             load = system["load_average"]
             system_table.add_row("Load Average (1min)", f"{load['one_minute']:.2f}")
             system_table.add_row("Load Average (5min)", f"{load['five_minute']:.2f}")
-            system_table.add_row("Load Average (15min)", f"{load['fifteen_minute']:.2f}")
+            system_table.add_row(
+                "Load Average (15min)", f"{load['fifteen_minute']:.2f}"
+            )
             system_table.add_row("Normalized Load", f"{load['normalized']:.2f}")
 
         if "cpu_count" in system:
@@ -564,7 +600,7 @@ def display_health_result(result: dict) -> None:
             checks_table.add_row(
                 check_name.replace("_", " ").title(),
                 Text(status, style=status_style),
-                details
+                details,
             )
 
         console.print(checks_table)

@@ -99,7 +99,9 @@ class UAMManager:
         # Check if UAM should be disabled
         elif load_average < lower_threshold and current_state.is_enabled:
             if self.state_manager.can_disable_uam(minimum_duration):
-                await self._disable_uam(load_average, lower_threshold, "Load normalized")
+                await self._disable_uam(
+                    load_average, lower_threshold, "Load normalized"
+                )
             else:
                 duration = self.state_manager.get_uam_duration()
                 remaining = minimum_duration - (duration or 0)
@@ -122,11 +124,15 @@ class UAMManager:
             self.state_manager.update_state(
                 is_enabled=current_state.is_enabled,
                 load_average=load_average,
-                threshold_used=upper_threshold if current_state.is_enabled else lower_threshold,
+                threshold_used=(
+                    upper_threshold if current_state.is_enabled else lower_threshold
+                ),
                 reason=reason,
             )
 
-    async def _enable_uam(self, load_average: float, threshold: float, reason: str) -> None:
+    async def _enable_uam(
+        self, load_average: float, threshold: float, reason: str
+    ) -> None:
         """Enable Under Attack Mode."""
         if not self.cloudflare_client:
             self.logger.error("Cloudflare client not initialized")
@@ -156,9 +162,13 @@ class UAMManager:
         except CloudflareError as e:
             self.logger.error("Failed to enable Under Attack Mode", error=str(e))
         except Exception as e:
-            self.logger.error("Unexpected error enabling Under Attack Mode", error=str(e))
+            self.logger.error(
+                "Unexpected error enabling Under Attack Mode", error=str(e)
+            )
 
-    async def _disable_uam(self, load_average: float, threshold: float, reason: str) -> None:
+    async def _disable_uam(
+        self, load_average: float, threshold: float, reason: str
+    ) -> None:
         """Disable Under Attack Mode."""
         if not self.cloudflare_client:
             self.logger.error("Cloudflare client not initialized")
@@ -190,7 +200,9 @@ class UAMManager:
         except CloudflareError as e:
             self.logger.error("Failed to disable Under Attack Mode", error=str(e))
         except Exception as e:
-            self.logger.error("Unexpected error disabling Under Attack Mode", error=str(e))
+            self.logger.error(
+                "Unexpected error disabling Under Attack Mode", error=str(e)
+            )
 
     async def enable_uam_manual(self) -> bool:
         """Manually enable Under Attack Mode."""
@@ -216,7 +228,9 @@ class UAMManager:
             return True
 
         except Exception as e:
-            self.logger.error("Failed to manually enable Under Attack Mode", error=str(e))
+            self.logger.error(
+                "Failed to manually enable Under Attack Mode", error=str(e)
+            )
             return False
 
     async def disable_uam_manual(self) -> bool:
@@ -245,7 +259,9 @@ class UAMManager:
             return True
 
         except Exception as e:
-            self.logger.error("Failed to manually disable Under Attack Mode", error=str(e))
+            self.logger.error(
+                "Failed to manually disable Under Attack Mode", error=str(e)
+            )
             return False
 
     def get_status(self) -> dict:

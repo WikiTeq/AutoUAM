@@ -13,7 +13,9 @@ class CloudflareConfig(BaseModel):
 
     api_token: str = Field(..., description="Cloudflare API token")
     zone_id: str = Field(..., description="Cloudflare zone ID")
-    email: Optional[str] = Field(None, description="Cloudflare account email (for reference only)")
+    email: Optional[str] = Field(
+        None, description="Cloudflare account email (for reference only)"
+    )
 
     @field_validator("api_token")
     @classmethod
@@ -61,11 +63,12 @@ class MonitoringConfig(BaseModel):
     """Monitoring configuration."""
 
     load_thresholds: LoadThresholds = Field(
-        default_factory=LoadThresholds,
-        description="Load average thresholds"
+        default_factory=LoadThresholds, description="Load average thresholds"
     )
     check_interval: int = Field(60, description="Check interval in seconds")
-    minimum_uam_duration: int = Field(300, description="Minimum UAM duration in seconds")
+    minimum_uam_duration: int = Field(
+        300, description="Minimum UAM duration in seconds"
+    )
 
     @field_validator("check_interval")
     @classmethod
@@ -96,7 +99,9 @@ class LoggingConfig(BaseModel):
     level: str = Field("INFO", description="Log level")
     format: str = Field("json", description="Log format (json, text)")
     output: str = Field("file", description="Log output (file, stdout, syslog)")
-    file_path: Optional[str] = Field("/var/log/autouam.log", description="Log file path")
+    file_path: Optional[str] = Field(
+        "/var/log/autouam.log", description="Log file path"
+    )
     max_size_mb: int = Field(100, description="Maximum log file size in MB")
     max_backups: int = Field(5, description="Maximum number of log backups")
 
@@ -142,7 +147,9 @@ class DeploymentConfig(BaseModel):
         """Validate deployment mode."""
         valid_modes = ["daemon", "oneshot", "lambda"]
         if v.lower() not in valid_modes:
-            raise ValueError(f"Deployment mode must be one of: {', '.join(valid_modes)}")
+            raise ValueError(
+                f"Deployment mode must be one of: {', '.join(valid_modes)}"
+            )
         return v.lower()
 
 
@@ -168,8 +175,7 @@ class TerraformConfig(BaseModel):
 
     state_backend: str = Field("s3", description="State backend type")
     state_config: Dict[str, Any] = Field(
-        default_factory=dict,
-        description="State backend configuration"
+        default_factory=dict, description="State backend configuration"
     )
 
     @field_validator("state_backend")
@@ -178,7 +184,9 @@ class TerraformConfig(BaseModel):
         """Validate state backend."""
         valid_backends = ["s3", "gcs", "azure", "local"]
         if v.lower() not in valid_backends:
-            raise ValueError(f"State backend must be one of: {', '.join(valid_backends)}")
+            raise ValueError(
+                f"State backend must be one of: {', '.join(valid_backends)}"
+            )
         return v.lower()
 
 

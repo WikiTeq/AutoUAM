@@ -12,21 +12,25 @@ from ..logging.setup import get_logger
 
 class CloudflareError(Exception):
     """Base exception for Cloudflare API errors."""
+
     pass
 
 
 class CloudflareAuthError(CloudflareError):
     """Authentication error with Cloudflare API."""
+
     pass
 
 
 class CloudflareRateLimitError(CloudflareError):
     """Rate limit exceeded error."""
+
     pass
 
 
 class CloudflareAPIError(CloudflareError):
     """General API error."""
+
     pass
 
 
@@ -124,15 +128,21 @@ class CloudflareClient:
 
                     if response.status == 200:
                         if response_data.get("success"):
-                            self.logger.debug("API request successful", endpoint=endpoint)
+                            self.logger.debug(
+                                "API request successful", endpoint=endpoint
+                            )
                             return response_data
                         else:
                             errors = response_data.get("errors", [])
-                            error_msg = "; ".join([e.get("message", "Unknown error") for e in errors])
+                            error_msg = "; ".join(
+                                [e.get("message", "Unknown error") for e in errors]
+                            )
                             raise CloudflareAPIError(f"API request failed: {error_msg}")
 
                     elif response.status == 401:
-                        raise CloudflareAuthError("Authentication failed - check API token")
+                        raise CloudflareAuthError(
+                            "Authentication failed - check API token"
+                        )
 
                     elif response.status == 429:
                         retry_after = int(response.headers.get("Retry-After", 60))
@@ -147,7 +157,7 @@ class CloudflareClient:
                     elif response.status >= 500:
                         # Server error, retry with exponential backoff
                         if attempt < max_retries:
-                            wait_time = 2 ** attempt
+                            wait_time = 2**attempt
                             self.logger.warning(
                                 "Server error, retrying",
                                 status=response.status,
@@ -160,11 +170,13 @@ class CloudflareClient:
                             raise CloudflareAPIError(f"Server error: {response.status}")
 
                     else:
-                        raise CloudflareAPIError(f"HTTP {response.status}: {response.reason}")
+                        raise CloudflareAPIError(
+                            f"HTTP {response.status}: {response.reason}"
+                        )
 
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
                 if attempt < max_retries:
-                    wait_time = 2 ** attempt
+                    wait_time = 2**attempt
                     self.logger.warning(
                         "Network error, retrying",
                         error=str(e),
@@ -174,7 +186,9 @@ class CloudflareClient:
                     await asyncio.sleep(wait_time)
                     continue
                 else:
-                    raise CloudflareAPIError(f"Network error after {max_retries} retries: {e}")
+                    raise CloudflareAPIError(
+                        f"Network error after {max_retries} retries: {e}"
+                    )
 
         raise CloudflareAPIError(f"Request failed after {max_retries} retries")
 
@@ -200,7 +214,9 @@ class CloudflareClient:
         """Enable Under Attack Mode."""
         return await self.update_security_level("under_attack")
 
-    async def disable_under_attack_mode(self, regular_mode: str = "essentially_off") -> Dict[str, Any]:
+    async def disable_under_attack_mode(
+        self, regular_mode: str = "essentially_off"
+    ) -> Dict[str, Any]:
         """Disable Under Attack Mode and set to regular mode."""
         return await self.update_security_level(regular_mode)
 

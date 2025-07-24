@@ -15,11 +15,21 @@ from ..logging.setup import get_logger
 
 # Prometheus metrics
 LOAD_AVERAGE_GAUGE = Gauge("autouam_load_average", "Current system load average")
-UAM_STATUS_GAUGE = Gauge("autouam_uam_enabled", "UAM enabled status (1=enabled, 0=disabled)")
-UAM_DURATION_GAUGE = Gauge("autouam_uam_duration_seconds", "Current UAM duration in seconds")
-CLOUDFLARE_API_REQUESTS = Counter("autouam_cloudflare_api_requests_total", "Total Cloudflare API requests")
-CLOUDFLARE_API_ERRORS = Counter("autouam_cloudflare_api_errors_total", "Total Cloudflare API errors")
-HEALTH_CHECK_DURATION = Histogram("autouam_health_check_duration_seconds", "Health check duration")
+UAM_STATUS_GAUGE = Gauge(
+    "autouam_uam_enabled", "UAM enabled status (1=enabled, 0=disabled)"
+)
+UAM_DURATION_GAUGE = Gauge(
+    "autouam_uam_duration_seconds", "Current UAM duration in seconds"
+)
+CLOUDFLARE_API_REQUESTS = Counter(
+    "autouam_cloudflare_api_requests_total", "Total Cloudflare API requests"
+)
+CLOUDFLARE_API_ERRORS = Counter(
+    "autouam_cloudflare_api_errors_total", "Total Cloudflare API errors"
+)
+HEALTH_CHECK_DURATION = Histogram(
+    "autouam_health_check_duration_seconds", "Health check duration"
+)
 
 
 class HealthChecker:
@@ -52,7 +62,9 @@ class HealthChecker:
             # Test initial connection
             async with self.cloudflare_client as client:
                 if not await client.test_connection():
-                    self.logger.error("Failed to connect to Cloudflare API during health check initialization")
+                    self.logger.error(
+                        "Failed to connect to Cloudflare API during health check initialization"
+                    )
                     return False
 
             self.logger.info("Health checker initialized successfully")
@@ -79,7 +91,9 @@ class HealthChecker:
             cloudflare_info = await self._check_cloudflare_api()
 
             # Determine overall health
-            overall_health = self._determine_overall_health(load_info, uam_info, cloudflare_info)
+            overall_health = self._determine_overall_health(
+                load_info, uam_info, cloudflare_info
+            )
 
             # Update metrics
             self._update_metrics(load_info, uam_info, cloudflare_info)
@@ -150,7 +164,9 @@ class HealthChecker:
 
             return {
                 "healthy": is_healthy,
-                "status": "System load normal" if is_healthy else "System load extremely high",
+                "status": (
+                    "System load normal" if is_healthy else "System load extremely high"
+                ),
                 "load_average": load_avg,
                 "cpu_count": cpu_count,
                 "raw_load": system_info["load_average"],
@@ -229,7 +245,9 @@ class HealthChecker:
                 "error": str(e),
             }
 
-    def _determine_overall_health(self, load_info: Dict, uam_info: Dict, cloudflare_info: Dict) -> Dict[str, any]:
+    def _determine_overall_health(
+        self, load_info: Dict, uam_info: Dict, cloudflare_info: Dict
+    ) -> Dict[str, any]:
         """Determine overall health status."""
         checks = [load_info, uam_info, cloudflare_info]
         failed_checks = [check for check in checks if not check.get("healthy", True)]
@@ -240,7 +258,9 @@ class HealthChecker:
 
         return {"healthy": True, "status": "All health checks passed"}
 
-    def _update_metrics(self, load_info: Dict, uam_info: Dict, cloudflare_info: Dict) -> None:
+    def _update_metrics(
+        self, load_info: Dict, uam_info: Dict, cloudflare_info: Dict
+    ) -> None:
         """Update Prometheus metrics."""
         try:
             # Update load average metric
@@ -265,7 +285,7 @@ class HealthChecker:
     def get_metrics(self) -> str:
         """Get Prometheus metrics."""
         try:
-            return generate_latest().decode('utf-8')
+            return generate_latest().decode("utf-8")
         except Exception as e:
             self.logger.error("Failed to generate metrics", error=str(e))
             return ""

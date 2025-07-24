@@ -111,13 +111,17 @@ class LoadMonitor:
                 with open("/proc/stat", "r") as f:
                     lines = f.readlines()
 
-                cpu_count = sum(1 for line in lines if line.startswith("cpu") and line != "cpu\n")
+                cpu_count = sum(
+                    1 for line in lines if line.startswith("cpu") and line != "cpu\n"
+                )
 
             self.logger.debug("CPU count determined", cpu_count=cpu_count)
             return cpu_count
 
         except (IOError, OSError) as e:
-            self.logger.warning("Failed to determine CPU count, assuming 1", error=str(e))
+            self.logger.warning(
+                "Failed to determine CPU count, assuming 1", error=str(e)
+            )
             return 1
 
     def get_normalized_load(self) -> float:

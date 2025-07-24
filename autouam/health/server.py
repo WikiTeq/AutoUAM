@@ -30,7 +30,9 @@ class HealthServer:
     def _setup_routes(self) -> None:
         """Setup HTTP routes."""
         self.app.router.add_get(self.config.health.endpoint, self._health_handler)
-        self.app.router.add_get(self.config.health.metrics_endpoint, self._metrics_handler)
+        self.app.router.add_get(
+            self.config.health.metrics_endpoint, self._metrics_handler
+        )
         self.app.router.add_get("/", self._root_handler)
         self.app.router.add_get("/ready", self._ready_handler)
         self.app.router.add_get("/live", self._live_handler)
@@ -100,16 +102,18 @@ class HealthServer:
 
     async def _root_handler(self, request: web.Request) -> web.Response:
         """Handle root requests."""
-        return web.json_response({
-            "service": "AutoUAM Health Server",
-            "version": "0.1.0",
-            "endpoints": {
-                "health": self.config.health.endpoint,
-                "metrics": self.config.health.metrics_endpoint,
-                "ready": "/ready",
-                "live": "/live",
-            },
-        })
+        return web.json_response(
+            {
+                "service": "AutoUAM Health Server",
+                "version": "0.1.0",
+                "endpoints": {
+                    "health": self.config.health.endpoint,
+                    "metrics": self.config.health.metrics_endpoint,
+                    "ready": "/ready",
+                    "live": "/live",
+                },
+            }
+        )
 
     async def _ready_handler(self, request: web.Request) -> web.Request:
         """Handle readiness probe requests."""
@@ -119,26 +123,34 @@ class HealthServer:
 
             status_code = 200 if is_healthy else 503
 
-            return web.json_response({
-                "ready": is_healthy,
-                "timestamp": asyncio.get_event_loop().time(),
-            }, status=status_code)
+            return web.json_response(
+                {
+                    "ready": is_healthy,
+                    "timestamp": asyncio.get_event_loop().time(),
+                },
+                status=status_code,
+            )
 
         except Exception as e:
             self.logger.error("Readiness probe error", error=str(e))
-            return web.json_response({
-                "ready": False,
-                "error": str(e),
-                "timestamp": asyncio.get_event_loop().time(),
-            }, status=503)
+            return web.json_response(
+                {
+                    "ready": False,
+                    "error": str(e),
+                    "timestamp": asyncio.get_event_loop().time(),
+                },
+                status=503,
+            )
 
     async def _live_handler(self, request: web.Request) -> web.Request:
         """Handle liveness probe requests."""
         # Liveness probe is always successful if the server is running
-        return web.json_response({
-            "alive": True,
-            "timestamp": asyncio.get_event_loop().time(),
-        })
+        return web.json_response(
+            {
+                "alive": True,
+                "timestamp": asyncio.get_event_loop().time(),
+            }
+        )
 
     async def start(self) -> None:
         """Start the health server."""
