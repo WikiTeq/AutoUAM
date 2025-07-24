@@ -64,7 +64,7 @@ class MonitoringConfig(BaseModel):
         default_factory=LoadThresholds,
         description="Load average thresholds"
     )
-    check_interval: int = Field(5, description="Check interval in seconds")
+    check_interval: int = Field(60, description="Check interval in seconds")
     minimum_uam_duration: int = Field(300, description="Minimum UAM duration in seconds")
 
     @field_validator("check_interval")
