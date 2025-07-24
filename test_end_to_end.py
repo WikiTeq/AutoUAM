@@ -64,7 +64,8 @@ class EndToEndTester:
             "cloudflare": {
                 "api_token": "test_token",
                 "email": "test@example.com",
-                "zone_id": "test_zone_id"
+                "zone_id": "test_zone_id",
+                "base_url": "http://localhost:8081/client/v4"
             },
             "monitoring": {
                 "check_interval": 2,  # Fast for testing
@@ -135,12 +136,13 @@ class EndToEndTester:
 
         # Mock high load
         with self.mock_high_load():
-            result = await manager.check_and_act()
+            # Use check_once to simulate a monitoring cycle
+            result = await manager.check_once()
 
-            print(f"High load check result: {result['action']}")
-            print(f"Reason: {result.get('reason', 'N/A')}")
+            print(f"High load check result: {result}")
 
-            if result['action'] == 'enabled':
+            # Check if UAM was enabled
+            if result.get('uam_enabled', False):
                 print("✅ UAM was enabled due to high load")
                 return True
             else:
@@ -157,20 +159,25 @@ class EndToEndTester:
         await manager.initialize()
 
         # First enable UAM
-        await manager.enable_uam("Test enable")
-        print("✅ UAM enabled for testing")
+        result = await manager.enable_uam_manual()
+        if result:
+            print("✅ UAM enabled for testing")
+        else:
+            print("❌ Failed to enable UAM for testing")
+            return False
 
         # Wait a moment
         await asyncio.sleep(1)
 
         # Mock low load
         with self.mock_low_load():
-            result = await manager.check_and_act()
+            # Use check_once to simulate a monitoring cycle
+            result = await manager.check_once()
 
-            print(f"Low load check result: {result['action']}")
-            print(f"Reason: {result.get('reason', 'N/A')}")
+            print(f"Low load check result: {result}")
 
-            if result['action'] == 'disabled':
+            # Check if UAM was disabled
+            if not result.get('uam_enabled', True):
                 print("✅ UAM was disabled due to low load")
                 return True
             else:
@@ -187,16 +194,16 @@ class EndToEndTester:
         await manager.initialize()
 
         # Test enable
-        result = await manager.enable_uam("Manual test enable")
-        if result['success']:
+        result = await manager.enable_uam_manual()
+        if result:
             print("✅ Manual enable successful")
         else:
             print("❌ Manual enable failed")
             return False
 
         # Test disable
-        result = await manager.disable_uam("Manual test disable")
-        if result['success']:
+        result = await manager.disable_uam_manual()
+        if result:
             print("✅ Manual disable successful")
         else:
             print("❌ Manual disable failed")
@@ -213,7 +220,8 @@ class EndToEndTester:
             cloudflare={
                 "api_token": "invalid_token",
                 "email": "test@example.com",
-                "zone_id": "test_zone_id"
+                "zone_id": "test_zone_id",
+                "base_url": "http://localhost:8081/client/v4"
             },
             monitoring=self.settings.monitoring,
             logging=self.settings.logging,
@@ -238,7 +246,7 @@ class EndToEndTester:
         import autouam.core.monitor
         original_method = autouam.core.monitor.LoadMonitor.get_normalized_load
 
-        def mock_high_load():
+        def mock_high_load(self):
             return 30.0  # High load
 
         autouam.core.monitor.LoadMonitor.get_normalized_load = mock_high_load
@@ -257,7 +265,7 @@ class EndToEndTester:
         import autouam.core.monitor
         original_method = autouam.core.monitor.LoadMonitor.get_normalized_load
 
-        def mock_low_load():
+        def mock_low_load(self):
             return 5.0  # Low load
 
         autouam.core.monitor.LoadMonitor.get_normalized_load = mock_low_load
