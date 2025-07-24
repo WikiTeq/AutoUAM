@@ -331,14 +331,16 @@ class TestValidators:
 
     def test_validate_config_invalid_thresholds(self):
         """Test configuration validation with invalid thresholds."""
+        # Create settings with valid thresholds first
         settings = Settings(
             cloudflare=CloudflareConfig(
                 api_token="test_token_123456789",
                 zone_id="test_zone_123456789"
             )
         )
-        settings.monitoring.load_thresholds.upper = 10.0
-        settings.monitoring.load_thresholds.lower = 1.0
+        # Then manually set invalid thresholds to test the validate_config function
+        settings.monitoring.load_thresholds.upper = 1.0
+        settings.monitoring.load_thresholds.lower = 2.0
 
         errors = validate_config(settings)
         assert len(errors) == 1
