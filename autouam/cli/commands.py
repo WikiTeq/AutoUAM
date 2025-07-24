@@ -219,7 +219,8 @@ def enable(ctx: click.Context, config: Optional[str]) -> None:
         if config_path and config_path.exists():
             settings = Settings.from_file(config_path)
         else:
-            settings = Settings()
+            print_error("Configuration file is required for this command")
+            sys.exit(1)
 
         setup_logging(settings.logging)
 
@@ -255,7 +256,8 @@ def disable(ctx: click.Context, config: Optional[str]) -> None:
         if config_path and config_path.exists():
             settings = Settings.from_file(config_path)
         else:
-            settings = Settings()
+            print_error("Configuration file is required for this command")
+            sys.exit(1)
 
         setup_logging(settings.logging)
 
@@ -291,7 +293,8 @@ def status(ctx: click.Context, config: Optional[str]) -> None:
         if config_path and config_path.exists():
             settings = Settings.from_file(config_path)
         else:
-            settings = Settings()
+            print_error("Configuration file is required for this command")
+            sys.exit(1)
 
         setup_logging(settings.logging)
 
@@ -384,7 +387,8 @@ def show(ctx: click.Context, config: Optional[str]) -> None:
         if config:
             settings = Settings.from_file(Path(config))
         else:
-            settings = Settings()
+            print_error("Configuration file is required for this command")
+            sys.exit(1)
 
         config_dict = settings.to_dict()
 
@@ -423,7 +427,8 @@ def health_check(ctx: click.Context, config: Optional[str]) -> None:
         if config_path and config_path.exists():
             settings = Settings.from_file(config_path)
         else:
-            settings = Settings()
+            print_error("Configuration file is required for this command")
+            sys.exit(1)
 
         setup_logging(settings.logging)
 
@@ -465,7 +470,8 @@ def metrics(ctx: click.Context, config: Optional[str]) -> None:
         if config_path and config_path.exists():
             settings = Settings.from_file(config_path)
         else:
-            settings = Settings()
+            print_error("Configuration file is required for this command")
+            sys.exit(1)
 
         setup_logging(settings.logging)
 

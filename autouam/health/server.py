@@ -4,7 +4,6 @@ import asyncio
 from typing import Optional
 
 from aiohttp import web
-from prometheus_client import CONTENT_TYPE_LATEST
 
 from ..config.settings import Settings
 from ..logging.setup import get_logger

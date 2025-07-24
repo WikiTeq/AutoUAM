@@ -37,7 +37,13 @@ class CloudflareAPIError(CloudflareError):
 class CloudflareClient:
     """Async Cloudflare API client with rate limiting and retry logic."""
 
-    def __init__(self, api_token: str, zone_id: str, timeout: int = 30, base_url: str = "https://api.cloudflare.com/client/v4"):
+    def __init__(
+        self,
+        api_token: str,
+        zone_id: str,
+        timeout: int = 30,
+        base_url: str = "https://api.cloudflare.com/client/v4",
+    ):
         """Initialize the Cloudflare client."""
         self.api_token = api_token
         self.zone_id = zone_id

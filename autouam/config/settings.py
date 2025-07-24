@@ -18,7 +18,7 @@ class CloudflareConfig(BaseModel):
     )
     base_url: Optional[str] = Field(
         "https://api.cloudflare.com/client/v4",
-        description="Cloudflare API base URL (for testing)"
+        description="Cloudflare API base URL (for testing)",
     )
 
     @field_validator("api_token")
@@ -67,8 +67,7 @@ class MonitoringConfig(BaseModel):
     """Monitoring configuration."""
 
     load_thresholds: LoadThresholds = Field(
-        default_factory=LoadThresholds,  # type: ignore[arg-type]
-        description="Load average thresholds",
+        default_factory=LoadThresholds  # type: ignore[arg-type]
     )
     check_interval: int = Field(60, description="Check interval in seconds")
     minimum_uam_duration: int = Field(
@@ -199,21 +198,21 @@ class Settings(BaseSettings):
     """Main settings configuration."""
 
     cloudflare: CloudflareConfig
-    monitoring: MonitoringConfig = Field(  # type: ignore[arg-type]
-        default_factory=MonitoringConfig
+    monitoring: MonitoringConfig = Field(
+        default_factory=MonitoringConfig  # type: ignore[arg-type]
     )
-    security: SecurityConfig = Field(  # type: ignore[arg-type]
-        default_factory=SecurityConfig
+    security: SecurityConfig = Field(
+        default_factory=SecurityConfig  # type: ignore[arg-type]
     )
-    logging: LoggingConfig = Field(  # type: ignore[arg-type]
-        default_factory=LoggingConfig
+    logging: LoggingConfig = Field(
+        default_factory=LoggingConfig  # type: ignore[arg-type]
     )
-    deployment: DeploymentConfig = Field(  # type: ignore[arg-type]
-        default_factory=DeploymentConfig
+    deployment: DeploymentConfig = Field(
+        default_factory=DeploymentConfig  # type: ignore[arg-type]
     )
     health: HealthConfig = Field(default_factory=HealthConfig)  # type: ignore[arg-type]
-    terraform: TerraformConfig = Field(  # type: ignore[arg-type]
-        default_factory=TerraformConfig
+    terraform: TerraformConfig = Field(
+        default_factory=TerraformConfig  # type: ignore[arg-type]
     )
 
     model_config = {
