@@ -55,10 +55,13 @@ cloudflare:
 
 monitoring:
   load_thresholds:
-    upper: 25.0    # Enable UAM when load > 25.0
-    lower: 15.0    # Disable UAM when load < 15.0
+    upper: 2.0     # Enable UAM when normalized load > 2.0
+    lower: 1.0     # Disable UAM when normalized load < 1.0
   check_interval: 5  # seconds
   minimum_uam_duration: 300  # seconds
+
+  # Load thresholds use normalized values (load average ÷ CPU cores)
+  # Example: On a 2-core system, normalized load 2.0 = actual load 4.0
 
 security:
   regular_mode: "essentially_off"  # Normal security level
@@ -139,8 +142,8 @@ All configuration values can be overridden with environment variables:
 ```bash
 export AUTOUAM_CLOUDFLARE__API_TOKEN="your-token"
 export AUTOUAM_CLOUDFLARE__ZONE_ID="your-zone"
-export AUTOUAM_MONITORING__LOAD_THRESHOLDS__UPPER="25.0"
-export AUTOUAM_MONITORING__LOAD_THRESHOLDS__LOWER="15.0"
+export AUTOUAM_MONITORING__LOAD_THRESHOLDS__UPPER="2.0"
+export AUTOUAM_MONITORING__LOAD_THRESHOLDS__LOWER="1.0"
 export AUTOUAM_LOGGING__LEVEL="INFO"
 ```
 

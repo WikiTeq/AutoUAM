@@ -100,10 +100,10 @@ def generate_sample_config() -> Dict[str, Any]:
             "email": "admin@example.com",
         },
         "monitoring": {
-            "load_thresholds": {
-                "upper": 25.0,
-                "lower": 15.0,
-            },
+                    "load_thresholds": {
+            "upper": 2.0,
+            "lower": 1.0,
+        },
             "check_interval": 5,
             "minimum_uam_duration": 300,
         },

@@ -68,7 +68,7 @@ class EndToEndTester:
             },
             "monitoring": {
                 "check_interval": 2,  # Fast for testing
-                "load_thresholds": {"upper": 25.0, "lower": 15.0},
+                "load_thresholds": {"upper": 2.0, "lower": 1.0},
                 "minimum_uam_duration": 60  # Minimum allowed
             },
             "logging": {

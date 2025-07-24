@@ -156,44 +156,44 @@ class TestLoadMonitor:
     @patch.object(LoadMonitor, 'get_normalized_load')
     def test_is_high_load_true(self, mock_normalized_load):
         """Test high load detection when load is above threshold."""
-        mock_normalized_load.return_value = 30.0
+        mock_normalized_load.return_value = 3.0
 
         with patch('os.path.exists', return_value=True):
             monitor = LoadMonitor()
-            is_high = monitor.is_high_load(25.0)
+            is_high = monitor.is_high_load(2.0)
 
             assert is_high is True
 
     @patch.object(LoadMonitor, 'get_normalized_load')
     def test_is_high_load_false(self, mock_normalized_load):
         """Test high load detection when load is below threshold."""
-        mock_normalized_load.return_value = 20.0
+        mock_normalized_load.return_value = 1.5
 
         with patch('os.path.exists', return_value=True):
             monitor = LoadMonitor()
-            is_high = monitor.is_high_load(25.0)
+            is_high = monitor.is_high_load(2.0)
 
             assert is_high is False
 
     @patch.object(LoadMonitor, 'get_normalized_load')
     def test_is_low_load_true(self, mock_normalized_load):
         """Test low load detection when load is below threshold."""
-        mock_normalized_load.return_value = 10.0
+        mock_normalized_load.return_value = 0.5
 
         with patch('os.path.exists', return_value=True):
             monitor = LoadMonitor()
-            is_low = monitor.is_low_load(15.0)
+            is_low = monitor.is_low_load(1.0)
 
             assert is_low is True
 
     @patch.object(LoadMonitor, 'get_normalized_load')
     def test_is_low_load_false(self, mock_normalized_load):
         """Test low load detection when load is above threshold."""
-        mock_normalized_load.return_value = 20.0
+        mock_normalized_load.return_value = 1.5
 
         with patch('os.path.exists', return_value=True):
             monitor = LoadMonitor()
-            is_low = monitor.is_low_load(15.0)
+            is_low = monitor.is_low_load(1.0)
 
             assert is_low is False
 

@@ -35,8 +35,8 @@ class CloudflareConfig(BaseModel):
 class LoadThresholds(BaseModel):
     """Load average thresholds configuration."""
 
-    upper: float = Field(25.0, description="Enable UAM when load > this value")
-    lower: float = Field(15.0, description="Disable UAM when load < this value")
+    upper: float = Field(2.0, description="Enable UAM when load > this value")
+    lower: float = Field(1.0, description="Disable UAM when load < this value")
 
     @field_validator("upper", "lower")
     @classmethod

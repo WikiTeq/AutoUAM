@@ -28,7 +28,7 @@ class TestUAMManagerIntegration:
             },
             monitoring={
                 "check_interval": 5,
-                "load_thresholds": {"upper": 25.0, "lower": 15.0},
+                "load_thresholds": {"upper": 2.0, "lower": 1.0},
                 "minimum_uam_duration": 300
             },
             logging={"level": "INFO", "output": "stdout", "format": "text"},
@@ -186,7 +186,7 @@ class TestHealthCheckerIntegration:
             },
             monitoring={
                 "check_interval": 5,
-                "load_thresholds": {"upper": 25.0, "lower": 15.0},
+                "load_thresholds": {"upper": 2.0, "lower": 1.0},
                 "minimum_uam_duration": 300
             },
             logging={"level": "INFO", "output": "stdout", "format": "text"},

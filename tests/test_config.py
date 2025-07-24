@@ -48,30 +48,30 @@ class TestLoadThresholds:
 
     def test_valid_thresholds(self):
         """Test valid load thresholds."""
-        thresholds = LoadThresholds(upper=25.0, lower=15.0)
+        thresholds = LoadThresholds(upper=2.0, lower=1.0)
 
-        assert thresholds.upper == 25.0
-        assert thresholds.lower == 15.0
+        assert thresholds.upper == 2.0
+        assert thresholds.lower == 1.0
 
     def test_invalid_negative_threshold(self):
         """Test negative threshold validation."""
         with pytest.raises(ValueError, match="Thresholds must be positive"):
-            LoadThresholds(upper=-1.0, lower=15.0)
+            LoadThresholds(upper=-1.0, lower=1.0)
 
     def test_invalid_zero_threshold(self):
         """Test zero threshold validation."""
         with pytest.raises(ValueError, match="Thresholds must be positive"):
-            LoadThresholds(upper=25.0, lower=0.0)
+            LoadThresholds(upper=2.0, lower=0.0)
 
     def test_invalid_lower_greater_than_upper(self):
         """Test lower threshold greater than upper threshold."""
         with pytest.raises(ValueError, match="Lower threshold must be less than upper threshold"):
-            LoadThresholds(upper=15.0, lower=25.0)
+            LoadThresholds(upper=1.0, lower=2.0)
 
     def test_invalid_lower_equal_to_upper(self):
         """Test lower threshold equal to upper threshold."""
         with pytest.raises(ValueError, match="Lower threshold must be less than upper threshold"):
-            LoadThresholds(upper=25.0, lower=25.0)
+            LoadThresholds(upper=2.0, lower=2.0)
 
 
 class TestMonitoringConfig:
@@ -80,13 +80,13 @@ class TestMonitoringConfig:
     def test_valid_config(self):
         """Test valid monitoring configuration."""
         config = MonitoringConfig(
-            load_thresholds=LoadThresholds(upper=25.0, lower=15.0),
+            load_thresholds=LoadThresholds(upper=2.0, lower=1.0),
             check_interval=5,
             minimum_uam_duration=300
         )
 
-        assert config.load_thresholds.upper == 25.0
-        assert config.load_thresholds.lower == 15.0
+        assert config.load_thresholds.upper == 2.0
+        assert config.load_thresholds.lower == 1.0
         assert config.check_interval == 5
         assert config.minimum_uam_duration == 300
 
@@ -223,8 +223,8 @@ class TestSettings:
 
         assert settings.cloudflare.api_token == "test_token_123456789"
         assert settings.cloudflare.zone_id == "test_zone_123456789"
-        assert settings.monitoring.load_thresholds.upper == 25.0  # Default
-        assert settings.monitoring.load_thresholds.lower == 15.0  # Default
+        assert settings.monitoring.load_thresholds.upper == 2.0  # Default
+        assert settings.monitoring.load_thresholds.lower == 1.0  # Default
 
     def test_from_file_success(self):
         """Test loading settings from file."""
@@ -338,7 +338,7 @@ class TestValidators:
             )
         )
         settings.monitoring.load_thresholds.upper = 10.0
-        settings.monitoring.load_thresholds.lower = 15.0
+        settings.monitoring.load_thresholds.lower = 1.0
 
         errors = validate_config(settings)
         assert len(errors) == 1
@@ -385,5 +385,5 @@ class TestValidators:
 
         assert sample_config["cloudflare"]["api_token"] == "${CF_API_TOKEN}"
         assert sample_config["cloudflare"]["zone_id"] == "${CF_ZONE_ID}"
-        assert sample_config["monitoring"]["load_thresholds"]["upper"] == 25.0
-        assert sample_config["monitoring"]["load_thresholds"]["lower"] == 15.0
+        assert sample_config["monitoring"]["load_thresholds"]["upper"] == 2.0
+        assert sample_config["monitoring"]["load_thresholds"]["lower"] == 1.0
