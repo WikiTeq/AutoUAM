@@ -1,6 +1,7 @@
 """State management for AutoUAM."""
 
 import json
+import os
 import time
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -37,7 +38,12 @@ class StateManager:
     def __init__(self, state_file: Optional[str] = None):
         """Initialize state manager."""
         self.logger = get_logger(__name__)
-        self.state_file = state_file or "/var/lib/autouam/state.json"
+        # Check for environment variable first, then parameter, then default
+        self.state_file = (
+            state_file
+            or os.environ.get("AUTOUAM_STATE_FILE")
+            or "/var/lib/autouam/state.json"
+        )
         self._state: Optional[UAMState] = None
         self._ensure_state_directory()
 
