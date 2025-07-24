@@ -34,6 +34,7 @@ class UAMManager:
             self.cloudflare_client = CloudflareClient(
                 api_token=self.config.cloudflare.api_token,
                 zone_id=self.config.cloudflare.zone_id,
+                base_url=self.config.cloudflare.base_url,
             )
 
             # Test Cloudflare connection

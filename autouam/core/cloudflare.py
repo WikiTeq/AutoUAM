@@ -37,13 +37,12 @@ class CloudflareAPIError(CloudflareError):
 class CloudflareClient:
     """Async Cloudflare API client with rate limiting and retry logic."""
 
-    BASE_URL = "https://api.cloudflare.com/client/v4"
-
-    def __init__(self, api_token: str, zone_id: str, timeout: int = 30):
+    def __init__(self, api_token: str, zone_id: str, timeout: int = 30, base_url: str = "https://api.cloudflare.com/client/v4"):
         """Initialize the Cloudflare client."""
         self.api_token = api_token
         self.zone_id = zone_id
         self.timeout = timeout
+        self.base_url = base_url
         self.logger = get_logger(__name__)
 
         # Rate limiting
@@ -111,7 +110,7 @@ class CloudflareClient:
         await self._ensure_session()
         assert self._session is not None  # Session is created by _ensure_session
 
-        url = f"{self.BASE_URL}{endpoint}"
+        url = f"{self.base_url}{endpoint}"
 
         for attempt in range(max_retries + 1):
             try:

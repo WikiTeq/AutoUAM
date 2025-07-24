@@ -16,6 +16,10 @@ class CloudflareConfig(BaseModel):
     email: Optional[str] = Field(
         None, description="Cloudflare account email (for reference only)"
     )
+    base_url: Optional[str] = Field(
+        "https://api.cloudflare.com/client/v4",
+        description="Cloudflare API base URL (for testing)"
+    )
 
     @field_validator("api_token")
     @classmethod

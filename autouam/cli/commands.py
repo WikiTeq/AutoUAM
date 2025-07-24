@@ -188,6 +188,10 @@ def check(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_check():
             uam_manager = UAMManager(settings)
+            if not await uam_manager.initialize():
+                print_error("Failed to initialize UAM manager")
+                sys.exit(1)
+
             result = await uam_manager.check_once()
 
             if ctx.obj["format"] == "json":
@@ -221,6 +225,10 @@ def enable(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_enable():
             uam_manager = UAMManager(settings)
+            if not await uam_manager.initialize():
+                print_error("Failed to initialize UAM manager")
+                sys.exit(1)
+
             success = await uam_manager.enable_uam_manual()
 
             if success:
@@ -253,6 +261,10 @@ def disable(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_disable():
             uam_manager = UAMManager(settings)
+            if not await uam_manager.initialize():
+                print_error("Failed to initialize UAM manager")
+                sys.exit(1)
+
             success = await uam_manager.disable_uam_manual()
 
             if success:
@@ -285,6 +297,10 @@ def status(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_status():
             uam_manager = UAMManager(settings)
+            if not await uam_manager.initialize():
+                print_error("Failed to initialize UAM manager")
+                sys.exit(1)
+
             result = uam_manager.get_status()
 
             if ctx.obj["format"] == "json":

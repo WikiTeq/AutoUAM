@@ -14,6 +14,7 @@ class MockCloudflareServer:
         self.app = web.Application()
         self.app.router.add_get('/client/v4/zones/{zone_id}/settings/security_level', self.get_security_level)
         self.app.router.add_patch('/client/v4/zones/{zone_id}/settings/security_level', self.set_security_level)
+        self.app.router.add_get('/client/v4/zones/{zone_id}', self.get_zone_info)
         self.app.router.add_get('/client/v4/user/tokens/verify', self.verify_token)
 
         # State
@@ -135,6 +136,37 @@ class MockCloudflareServer:
                 "modified_on": "2023-01-01T00:00:00Z",
                 "not_before": "2023-01-01T00:00:00Z",
                 "expires_on": "2024-01-01T00:00:00Z"
+            }
+        })
+
+    async def get_zone_info(self, request: web.Request) -> web.Response:
+        """Mock GET zone info endpoint."""
+        zone_id = request.match_info['zone_id']
+
+        # Check authentication
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return web.json_response(
+                {"success": False, "errors": [{"code": 6003, "message": "Invalid request headers"}]},
+                status=401
+            )
+
+        token = auth_header[7:]  # Remove 'Bearer ' prefix
+        if token not in self.valid_tokens:
+            return web.json_response(
+                {"success": False, "errors": [{"code": 6003, "message": "Invalid API token"}]},
+                status=403
+            )
+
+        return web.json_response({
+            "success": True,
+            "result": {
+                "id": zone_id,
+                "name": "example.com",
+                "status": "active",
+                "type": "full",
+                "created_on": "2023-01-01T00:00:00Z",
+                "modified_on": "2023-01-01T00:00:00Z"
             }
         })
 
