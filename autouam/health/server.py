@@ -88,7 +88,8 @@ class HealthServer:
 
             return web.Response(
                 text=metrics,
-                content_type=CONTENT_TYPE_LATEST,
+                content_type="text/plain; version=0.0.4",
+                charset="utf-8",
             )
 
         except Exception as e:
