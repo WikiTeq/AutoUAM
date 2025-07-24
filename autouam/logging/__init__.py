@@ -1,5 +1,5 @@
 """Logging configuration for AutoUAM."""
 
-from .setup import setup_logging, get_logger
+from .setup import get_logger, setup_logging
 
 __all__ = ["setup_logging", "get_logger"]

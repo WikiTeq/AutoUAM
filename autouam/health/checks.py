@@ -6,12 +6,11 @@ from typing import Dict, List, Optional
 
 from prometheus_client import Counter, Gauge, Histogram, generate_latest
 
-from ..core.monitor import LoadMonitor
-from ..core.cloudflare import CloudflareClient
-from ..core.state import StateManager
 from ..config.settings import Settings
+from ..core.cloudflare import CloudflareClient
+from ..core.monitor import LoadMonitor
+from ..core.state import StateManager
 from ..logging.setup import get_logger
-
 
 # Prometheus metrics
 LOAD_AVERAGE_GAUGE = Gauge("autouam_load_average", "Current system load average")

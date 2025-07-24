@@ -9,21 +9,21 @@ from typing import Optional
 import click
 import yaml
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 from rich.text import Text
 
 from ..config.settings import Settings
 from ..config.validators import (
+    generate_sample_config,
     validate_config,
     validate_config_file,
-    generate_sample_config,
 )
 from ..core.uam_manager import UAMManager
 from ..health.checks import HealthChecker
 from ..health.server import HealthServer
-from ..logging.setup import setup_logging, get_logger
+from ..logging.setup import get_logger, setup_logging
 
 console = Console()
 
