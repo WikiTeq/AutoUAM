@@ -115,7 +115,7 @@ class HealthServer:
             }
         )
 
-    async def _ready_handler(self, request: web.Request) -> web.Request:
+    async def _ready_handler(self, request: web.Request) -> web.Response:
         """Handle readiness probe requests."""
         try:
             # Quick health check
@@ -142,7 +142,7 @@ class HealthServer:
                 status=503,
             )
 
-    async def _live_handler(self, request: web.Request) -> web.Request:
+    async def _live_handler(self, request: web.Request) -> web.Response:
         """Handle liveness probe requests."""
         # Liveness probe is always successful if the server is running
         return web.json_response(

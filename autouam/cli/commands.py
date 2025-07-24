@@ -182,7 +182,7 @@ def check(ctx: click.Context, config: Optional[str]) -> None:
             settings = Settings.from_file(config_path)
         else:
             # Use environment variables
-            settings = Settings()
+            settings = Settings()  # type: ignore[call-arg]
 
         setup_logging(settings.logging)
 
