@@ -102,7 +102,14 @@ def main(
         # Use basic logging setup
         from ..config.settings import LoggingConfig
 
-        logging_config = LoggingConfig(level=log_level, output="stdout", format="text")
+        logging_config = LoggingConfig(
+            level=log_level,
+            output="stdout",
+            format="text",
+            file_path="/var/log/autouam.log",
+            max_size_mb=100,
+            max_backups=5
+        )
         setup_logging(logging_config)
 
 

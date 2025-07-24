@@ -50,7 +50,7 @@ class LoadThresholds(BaseModel):
 
     @field_validator("lower")
     @classmethod
-    def validate_lower_threshold(cls, v: float, info) -> float:
+    def validate_lower_threshold(cls, v: float, info: Any) -> float:
         """Ensure lower threshold is less than upper threshold."""
         # Get the upper value from the model info
         upper_value = info.data.get("upper") if info.data else None
@@ -63,7 +63,7 @@ class MonitoringConfig(BaseModel):
     """Monitoring configuration."""
 
     load_thresholds: LoadThresholds = Field(
-        default_factory=LoadThresholds, description="Load average thresholds"
+        default_factory=lambda: LoadThresholds(), description="Load average thresholds"
     )
     check_interval: int = Field(60, description="Check interval in seconds")
     minimum_uam_duration: int = Field(
@@ -194,12 +194,12 @@ class Settings(BaseSettings):
     """Main settings configuration."""
 
     cloudflare: CloudflareConfig
-    monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
-    security: SecurityConfig = Field(default_factory=SecurityConfig)
-    logging: LoggingConfig = Field(default_factory=LoggingConfig)
-    deployment: DeploymentConfig = Field(default_factory=DeploymentConfig)
-    health: HealthConfig = Field(default_factory=HealthConfig)
-    terraform: TerraformConfig = Field(default_factory=TerraformConfig)
+    monitoring: MonitoringConfig = Field(default_factory=lambda: MonitoringConfig())
+    security: SecurityConfig = Field(default_factory=lambda: SecurityConfig())
+    logging: LoggingConfig = Field(default_factory=lambda: LoggingConfig())
+    deployment: DeploymentConfig = Field(default_factory=lambda: DeploymentConfig())
+    health: HealthConfig = Field(default_factory=lambda: HealthConfig())
+    terraform: TerraformConfig = Field(default_factory=lambda: TerraformConfig())
 
     model_config = {
         "env_prefix": "AUTOUAM_",
@@ -210,10 +210,10 @@ class Settings(BaseSettings):
     @classmethod
     def customise_sources(
         cls,
-        init_settings,
-        env_settings,
-        file_secret_settings,
-    ):
+        init_settings: Any,
+        env_settings: Any,
+        file_secret_settings: Any,
+    ) -> Any:
         """Customize configuration sources."""
         return (
             init_settings,
@@ -254,7 +254,7 @@ class Settings(BaseSettings):
         """Convert settings to dictionary."""
         return self.model_dump()
 
-    def validate(self) -> None:
+    def validate_config(self) -> None:
         """Validate all settings."""
         # Additional cross-field validation can be added here
         pass
