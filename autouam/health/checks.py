@@ -253,7 +253,7 @@ class HealthChecker:
 
         if failed_checks:
             failed_statuses = [
-                check.get('status', 'Unknown') for check in failed_checks
+                check.get("status", "Unknown") for check in failed_checks
             ]
             status = f"Health check failed: {', '.join(failed_statuses)}"
             return {"healthy": False, "status": status}

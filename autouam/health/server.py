@@ -1,7 +1,6 @@
 """HTTP health server for AutoUAM."""
 
 import asyncio
-
 from typing import Optional
 
 from aiohttp import web

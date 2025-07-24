@@ -108,7 +108,7 @@ def main(
             format="text",
             file_path="/var/log/autouam.log",
             max_size_mb=100,
-            max_backups=5
+            max_backups=5,
         )
         setup_logging(logging_config)
 
