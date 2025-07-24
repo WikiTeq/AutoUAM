@@ -1,3 +1,5 @@
+<img src="banner.jpeg" alt="AutoUAM Banner" width="100%">
+
 # AutoUAM
 
 Automated Cloudflare Under Attack Mode management based on server load metrics.
