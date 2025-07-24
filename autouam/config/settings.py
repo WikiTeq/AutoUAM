@@ -63,7 +63,8 @@ class MonitoringConfig(BaseModel):
     """Monitoring configuration."""
 
     load_thresholds: LoadThresholds = Field(
-        default_factory=lambda: LoadThresholds(), description="Load average thresholds"
+        default_factory=LoadThresholds,
+        description="Load average thresholds"
     )
     check_interval: int = Field(60, description="Check interval in seconds")
     minimum_uam_duration: int = Field(
@@ -194,12 +195,12 @@ class Settings(BaseSettings):
     """Main settings configuration."""
 
     cloudflare: CloudflareConfig
-    monitoring: MonitoringConfig = Field(default_factory=lambda: MonitoringConfig())
-    security: SecurityConfig = Field(default_factory=lambda: SecurityConfig())
-    logging: LoggingConfig = Field(default_factory=lambda: LoggingConfig())
-    deployment: DeploymentConfig = Field(default_factory=lambda: DeploymentConfig())
-    health: HealthConfig = Field(default_factory=lambda: HealthConfig())
-    terraform: TerraformConfig = Field(default_factory=lambda: TerraformConfig())
+    monitoring: MonitoringConfig = Field(default_factory=MonitoringConfig)
+    security: SecurityConfig = Field(default_factory=SecurityConfig)
+    logging: LoggingConfig = Field(default_factory=LoggingConfig)
+    deployment: DeploymentConfig = Field(default_factory=DeploymentConfig)
+    health: HealthConfig = Field(default_factory=HealthConfig)
+    terraform: TerraformConfig = Field(default_factory=TerraformConfig)
 
     model_config = {
         "env_prefix": "AUTOUAM_",

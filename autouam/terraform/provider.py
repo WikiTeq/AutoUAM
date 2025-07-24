@@ -33,6 +33,7 @@ class TerraformProvider:
         if not self.uam_manager:
             if not await self.initialize():
                 return {"error": "Failed to initialize provider"}
+            assert self.uam_manager is not None  # initialize() sets uam_manager
 
         try:
             status = self.uam_manager.get_status()
@@ -52,6 +53,7 @@ class TerraformProvider:
         if not self.uam_manager:
             if not await self.initialize():
                 return {"error": "Failed to initialize provider"}
+            assert self.uam_manager is not None  # initialize() sets uam_manager
 
         try:
             status = self.uam_manager.get_status()
@@ -77,6 +79,7 @@ class TerraformProvider:
         if not self.uam_manager:
             if not await self.initialize():
                 return {"error": "Failed to initialize provider"}
+            assert self.uam_manager is not None  # initialize() sets uam_manager
 
         try:
             status = self.uam_manager.get_status()

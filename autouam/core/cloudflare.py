@@ -48,7 +48,7 @@ class CloudflareClient:
 
         # Rate limiting
         self.requests_per_minute = 1200  # Cloudflare's default limit
-        self.request_times = []
+        self.request_times: List[float] = []
 
         # Session management
         self._session: Optional[aiohttp.ClientSession] = None
@@ -109,6 +109,7 @@ class CloudflareClient:
     ) -> Dict[str, Any]:
         """Make an HTTP request with retry logic."""
         await self._ensure_session()
+        assert self._session is not None  # Session is created by _ensure_session
 
         url = f"{self.BASE_URL}{endpoint}"
 
