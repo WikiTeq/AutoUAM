@@ -6,7 +6,7 @@ from unittest.mock import patch, mock_open
 
 from autouam.config.settings import (
     Settings, CloudflareConfig, LoadThresholds, MonitoringConfig,
-    SecurityConfig, LoggingConfig, DeploymentConfig, HealthConfig, TerraformConfig
+    SecurityConfig, LoggingConfig, DeploymentConfig, HealthConfig
 )
 from autouam.config.validators import validate_config, validate_config_file, generate_sample_config
 
@@ -189,24 +189,7 @@ class TestHealthConfig:
             HealthConfig(port=70000)
 
 
-class TestTerraformConfig:
-    """Test TerraformConfig class."""
 
-    def test_valid_config(self):
-        """Test valid Terraform configuration."""
-        config = TerraformConfig(
-            state_backend="s3",
-            state_config={"bucket": "test-bucket", "key": "test-key"}
-        )
-
-        assert config.state_backend == "s3"
-        assert config.state_config["bucket"] == "test-bucket"
-        assert config.state_config["key"] == "test-key"
-
-    def test_invalid_state_backend(self):
-        """Test invalid state backend validation."""
-        with pytest.raises(ValueError, match="State backend must be one of"):
-            TerraformConfig(state_backend="invalid")
 
 
 class TestSettings:
@@ -383,7 +366,7 @@ class TestValidators:
         assert "monitoring" in sample_config
         assert "logging" in sample_config
         assert "health" in sample_config
-        assert "terraform" in sample_config
+
 
         assert sample_config["cloudflare"]["api_token"] == "${CF_API_TOKEN}"
         assert sample_config["cloudflare"]["zone_id"] == "${CF_ZONE_ID}"

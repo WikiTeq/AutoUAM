@@ -174,24 +174,7 @@ class HealthConfig(BaseModel):
         return v
 
 
-class TerraformConfig(BaseModel):
-    """Terraform integration configuration."""
 
-    state_backend: str = Field("s3", description="State backend type")
-    state_config: Dict[str, Any] = Field(
-        default_factory=dict, description="State backend configuration"
-    )
-
-    @field_validator("state_backend")
-    @classmethod
-    def validate_state_backend(cls, v: str) -> str:
-        """Validate state backend."""
-        valid_backends = ["s3", "gcs", "azure", "local"]
-        if v.lower() not in valid_backends:
-            raise ValueError(
-                f"State backend must be one of: {', '.join(valid_backends)}"
-            )
-        return v.lower()
 
 
 class Settings(BaseSettings):
@@ -211,9 +194,7 @@ class Settings(BaseSettings):
         default_factory=DeploymentConfig  # type: ignore[arg-type]
     )
     health: HealthConfig = Field(default_factory=HealthConfig)  # type: ignore[arg-type]
-    terraform: TerraformConfig = Field(
-        default_factory=TerraformConfig  # type: ignore[arg-type]
-    )
+
 
     model_config = {
         "env_prefix": "AUTOUAM_",

@@ -49,11 +49,7 @@ dev = [
     "mypy>=1.0.0",
     "pre-commit>=3.0.0",
 ]
-terraform = [
-    "boto3>=1.26.0",
-    "google-cloud-storage>=2.0.0",
-    "azure-storage-blob>=12.0.0",
-]
+
 
 [project.scripts]
 autouam = "autouam.cli.commands:main"

@@ -133,12 +133,5 @@ def generate_sample_config() -> Dict[str, Any]:
             "endpoint": "/health",
             "metrics_endpoint": "/metrics",
         },
-        "terraform": {
-            "state_backend": "s3",
-            "state_config": {
-                "bucket": "my-terraform-state",
-                "key": "autouam/terraform.tfstate",
-                "region": "us-east-1",
-            },
-        },
+
     }

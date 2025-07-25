@@ -489,52 +489,7 @@ def metrics(ctx: click.Context, config: Optional[str]) -> None:
         sys.exit(1)
 
 
-@main.group()
-def terraform() -> None:
-    """Terraform integration commands."""
-    pass
 
-
-@terraform.command()
-@click.option("--config", "-c", type=click.Path(), help="Configuration file path")
-@click.pass_context
-def terraform_status(ctx: click.Context, config: Optional[str]) -> None:
-    """Get status for Terraform external data source."""
-    config_path = ctx.obj.get("config_path") or config
-
-    if not config_path:
-        print_error("Configuration file path is required")
-        sys.exit(1)
-
-    config_file = Path(config_path)
-    if not config_file.exists():
-        print_error(f"Configuration file not found: {config_path}")
-        sys.exit(1)
-
-    try:
-        settings = Settings.from_file(config_file)
-        setup_logging(settings.logging)
-
-        async def run_terraform_status():
-            """Run Terraform status check."""
-            try:
-                from ..terraform.provider import TerraformProvider
-
-                provider = TerraformProvider(settings)
-                result = await provider.get_status()
-
-                # Output as JSON for Terraform external data source
-                print(json.dumps(result, indent=2))
-
-            except Exception as e:
-                print_error(f"Failed to get Terraform status: {e}")
-                sys.exit(1)
-
-        asyncio.run(run_terraform_status())
-
-    except Exception as e:
-        print_error(f"Failed to load configuration: {e}")
-        sys.exit(1)
 
 
 def display_status(result: dict) -> None:
