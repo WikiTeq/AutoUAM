@@ -3,6 +3,8 @@ version: '3.8'
 services:
   autouam:
     build: .
+      context: .
+      dockerfile: Dockerfile
     container_name: autouam
     restart: unless-stopped
     environment:
