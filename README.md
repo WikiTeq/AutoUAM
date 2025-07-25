@@ -234,15 +234,48 @@ WantedBy=multi-user.target
 
 ### 3. Docker Container
 
-```dockerfile
-FROM python:3.11-slim
+#### Using Docker Compose (Recommended)
 
-RUN pip install autouam
+```bash
+# Set environment variables
+export CF_API_TOKEN="your-cloudflare-api-token"
+export CF_ZONE_ID="your-cloudflare-zone-id"
+export CF_EMAIL="your-email@example.com"
 
-COPY config.yaml /etc/autouam/config.yaml
+# Build and run with Docker Compose
+docker-compose up -d
 
-CMD ["autouam", "daemon", "--config", "/etc/autouam/config.yaml"]
+# View logs
+docker-compose logs -f autouam
+
+# Stop the service
+docker-compose down
 ```
+
+#### Using Docker directly
+
+```bash
+# Build the image
+docker build -t autouam .
+
+# Run the container
+docker run -d \
+  --name autouam \
+  --restart unless-stopped \
+  -e CF_API_TOKEN="your-cloudflare-api-token" \
+  -e CF_ZONE_ID="your-cloudflare-zone-id" \
+  -e CF_EMAIL="your-email@example.com" \
+  -p 8080:8080 \
+  -v autouam_logs:/var/log/autouam \
+  autouam
+```
+
+The Docker container includes:
+- Non-root user for security
+- Health checks on port 8080
+- Volume for persistent logs
+- Environment variable configuration
+- Automatic restart policy
 
 ### 4. Cloud Functions
 

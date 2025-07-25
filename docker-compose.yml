@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  autouam:
+    build: .
+    container_name: autouam
+    restart: unless-stopped
+    environment:
+      - CF_API_TOKEN=${CF_API_TOKEN}
+      - CF_ZONE_ID=${CF_ZONE_ID}
+      - CF_EMAIL=${CF_EMAIL:-contact@wikiteq.com}
+    volumes:
+      - autouam_logs:/var/log/autouam
+    ports:
+      - "8080:8080"  # Health check endpoint
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+volumes:
+  autouam_logs:
