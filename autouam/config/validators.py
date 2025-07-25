@@ -133,5 +133,4 @@ def generate_sample_config() -> Dict[str, Any]:
             "endpoint": "/health",
             "metrics_endpoint": "/metrics",
         },
-
     }

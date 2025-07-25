@@ -1,22 +1,23 @@
 """Tests for configuration management functionality."""
 
-import pytest
 from pathlib import Path
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
+
+import pytest
 
 from autouam.config.settings import (
-    Settings,
     CloudflareConfig,
-    LoadThresholds,
-    MonitoringConfig,
-    LoggingConfig,
     DeploymentConfig,
     HealthConfig,
+    LoadThresholds,
+    LoggingConfig,
+    MonitoringConfig,
+    Settings,
 )
 from autouam.config.validators import (
+    generate_sample_config,
     validate_config,
     validate_config_file,
-    generate_sample_config,
 )
 
 

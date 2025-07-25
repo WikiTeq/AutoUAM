@@ -1,9 +1,10 @@
 """Tests for load monitoring functionality."""
 
-import pytest
-from unittest.mock import patch, mock_open
+from unittest.mock import mock_open, patch
 
-from autouam.core.monitor import LoadMonitor, LoadAverage
+import pytest
+
+from autouam.core.monitor import LoadAverage, LoadMonitor
 
 
 class TestLoadAverage:

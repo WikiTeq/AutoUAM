@@ -1,7 +1,8 @@
 """Mock Cloudflare API server for testing."""
 
-import json
 import asyncio
+import json
+
 from aiohttp import web
 
 
