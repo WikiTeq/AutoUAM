@@ -4,17 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autouam"
-version = "0.1.0"
+version = "1.0.0a1"
 description = "Automated Cloudflare Under Attack Mode management based on server load metrics"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
-    {name = "AutoUAM Team", email = "admin@example.com"}
+    {name = "Ike Hecht", email = "contact@wikiteq.com"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: MIT License",
+
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",

@@ -252,7 +252,7 @@ class TestConfigurationIntegration:
         config_data = {
             "cloudflare": {
                 "api_token": "${CF_API_TOKEN}",
-                "email": "admin@example.com",
+                "email": "contact@wikiteq.com",
                 "zone_id": "${CF_ZONE_ID}"
             },
             "monitoring": {
@@ -276,7 +276,7 @@ class TestConfigurationIntegration:
         try:
             settings = Settings.from_file(Path(config_path))
 
-            assert settings.cloudflare.email == "admin@example.com"
+            assert settings.cloudflare.email == "contact@wikiteq.com"
             assert settings.monitoring.check_interval == 10
             assert settings.monitoring.load_thresholds.upper == 30.0
             assert settings.logging.level == "DEBUG"
@@ -295,7 +295,7 @@ class TestConfigurationIntegration:
         config_data = {
             "cloudflare": {
                 "api_token": "${CF_API_TOKEN}",
-                "email": "admin@example.com",
+                "email": "contact@wikiteq.com",
                 "zone_id": "${CF_ZONE_ID}"
             }
         }

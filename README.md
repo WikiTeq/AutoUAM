@@ -53,7 +53,7 @@ Edit the configuration file with your Cloudflare credentials:
 cloudflare:
   api_token: "${CF_API_TOKEN}"
   zone_id: "${CF_ZONE_ID}"
-  email: "admin@example.com"
+  email: "contact@wikiteq.com"
 
 monitoring:
   load_thresholds:
@@ -384,14 +384,3 @@ pre-commit install
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support
-
-- **Documentation**: [GitHub Wiki](https://github.com/your-org/AutoUAM/wiki)
-- **Testing Guide**: [TESTING.md](TESTING.md)
-- **Issues**: [GitHub Issues](https://github.com/your-org/AutoUAM/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/AutoUAM/discussions)
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for a list of changes and version history.

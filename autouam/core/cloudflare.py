@@ -76,7 +76,7 @@ class CloudflareClient:
                 headers={
                     "Authorization": f"Bearer {self.api_token}",
                     "Content-Type": "application/json",
-                    "User-Agent": "AutoUAM/0.1.0",
+                    "User-Agent": "AutoUAM/1.0.0a1",
                 },
             )
 

@@ -100,7 +100,7 @@ def generate_sample_config() -> Dict[str, Any]:
         "cloudflare": {
             "api_token": "${CF_API_TOKEN}",
             "zone_id": "${CF_ZONE_ID}",
-            "email": "admin@example.com",
+            "email": "contact@wikiteq.com",
         },
         "monitoring": {
             "load_thresholds": {

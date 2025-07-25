@@ -49,7 +49,7 @@ def print_info(message: str) -> None:
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="autouam")
+@click.version_option(version="1.0.0a1", prog_name="autouam")
 @click.option(
     "--config", "-c", type=click.Path(exists=True), help="Configuration file path"
 )
