@@ -31,8 +31,6 @@ class TestLoadAverage:
         assert load_avg.average == 2.0  # Should return five_minute
 
 
-
-
 class TestLoadMonitor:
     """Test LoadMonitor class."""
 
@@ -111,8 +109,6 @@ class TestLoadMonitor:
             monitor = LoadMonitor()
             cpu_count = monitor.get_cpu_count()
             assert cpu_count == 3
-
-
 
     @patch("builtins.open", side_effect=FileNotFoundError("File not found"))
     def test_get_cpu_count_file_not_found(self, mock_file):
