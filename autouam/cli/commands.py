@@ -489,9 +489,6 @@ def metrics(ctx: click.Context, config: Optional[str]) -> None:
         sys.exit(1)
 
 
-
-
-
 def display_status(result: dict) -> None:
     """Display status in a formatted table."""
     if "error" in result:

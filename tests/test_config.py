@@ -5,10 +5,19 @@ from pathlib import Path
 from unittest.mock import patch, mock_open
 
 from autouam.config.settings import (
-    Settings, CloudflareConfig, LoadThresholds, MonitoringConfig,
-    SecurityConfig, LoggingConfig, DeploymentConfig, HealthConfig
+    Settings,
+    CloudflareConfig,
+    LoadThresholds,
+    MonitoringConfig,
+    LoggingConfig,
+    DeploymentConfig,
+    HealthConfig,
 )
-from autouam.config.validators import validate_config, validate_config_file, generate_sample_config
+from autouam.config.validators import (
+    validate_config,
+    validate_config_file,
+    generate_sample_config,
+)
 
 
 class TestCloudflareConfig:
@@ -19,7 +28,7 @@ class TestCloudflareConfig:
         config = CloudflareConfig(
             api_token="test_token_123456789",
             zone_id="test_zone_123456789",
-            email="test@example.com"
+            email="test@example.com",
         )
 
         assert config.api_token == "test_token_123456789"
@@ -28,19 +37,17 @@ class TestCloudflareConfig:
 
     def test_invalid_api_token(self):
         """Test invalid API token validation."""
-        with pytest.raises(ValueError, match="API token must be at least 10 characters long"):
-            CloudflareConfig(
-                api_token="short",
-                zone_id="test_zone_123456789"
-            )
+        with pytest.raises(
+            ValueError, match="API token must be at least 10 characters long"
+        ):
+            CloudflareConfig(api_token="short", zone_id="test_zone_123456789")
 
     def test_invalid_zone_id(self):
         """Test invalid zone ID validation."""
-        with pytest.raises(ValueError, match="Zone ID must be at least 10 characters long"):
-            CloudflareConfig(
-                api_token="test_token_123456789",
-                zone_id="short"
-            )
+        with pytest.raises(
+            ValueError, match="Zone ID must be at least 10 characters long"
+        ):
+            CloudflareConfig(api_token="test_token_123456789", zone_id="short")
 
 
 class TestLoadThresholds:
@@ -65,12 +72,16 @@ class TestLoadThresholds:
 
     def test_invalid_lower_greater_than_upper(self):
         """Test lower threshold greater than upper threshold."""
-        with pytest.raises(ValueError, match="Lower threshold must be less than upper threshold"):
+        with pytest.raises(
+            ValueError, match="Lower threshold must be less than upper threshold"
+        ):
             LoadThresholds(upper=1.0, lower=2.0)
 
     def test_invalid_lower_equal_to_upper(self):
         """Test lower threshold equal to upper threshold."""
-        with pytest.raises(ValueError, match="Lower threshold must be less than upper threshold"):
+        with pytest.raises(
+            ValueError, match="Lower threshold must be less than upper threshold"
+        ):
             LoadThresholds(upper=2.0, lower=2.0)
 
 
@@ -82,7 +93,7 @@ class TestMonitoringConfig:
         config = MonitoringConfig(
             load_thresholds=LoadThresholds(upper=2.0, lower=1.0),
             check_interval=5,
-            minimum_uam_duration=300
+            minimum_uam_duration=300,
         )
 
         assert config.load_thresholds.upper == 2.0
@@ -92,12 +103,16 @@ class TestMonitoringConfig:
 
     def test_invalid_check_interval(self):
         """Test invalid check interval validation."""
-        with pytest.raises(ValueError, match="Check interval must be at least 1 second"):
+        with pytest.raises(
+            ValueError, match="Check interval must be at least 1 second"
+        ):
             MonitoringConfig(check_interval=0)
 
     def test_invalid_minimum_duration(self):
         """Test invalid minimum duration validation."""
-        with pytest.raises(ValueError, match="Minimum UAM duration must be at least 60 seconds"):
+        with pytest.raises(
+            ValueError, match="Minimum UAM duration must be at least 60 seconds"
+        ):
             MonitoringConfig(minimum_uam_duration=30)
 
 
@@ -112,7 +127,7 @@ class TestLoggingConfig:
             output="file",
             file_path="/var/log/autouam.log",
             max_size_mb=100,
-            max_backups=5
+            max_backups=5,
         )
 
         assert config.level == "INFO"
@@ -147,7 +162,7 @@ class TestDeploymentConfig:
             mode="daemon",
             pid_file="/var/run/autouam.pid",
             user="autouam",
-            group="autouam"
+            group="autouam",
         )
 
         assert config.mode == "daemon"
@@ -167,10 +182,7 @@ class TestHealthConfig:
     def test_valid_config(self):
         """Test valid health configuration."""
         config = HealthConfig(
-            enabled=True,
-            port=8080,
-            endpoint="/health",
-            metrics_endpoint="/metrics"
+            enabled=True, port=8080, endpoint="/health", metrics_endpoint="/metrics"
         )
 
         assert config.enabled is True
@@ -189,9 +201,6 @@ class TestHealthConfig:
             HealthConfig(port=70000)
 
 
-
-
-
 class TestSettings:
     """Test Settings class."""
 
@@ -199,8 +208,7 @@ class TestSettings:
         """Test valid settings configuration."""
         settings = Settings(
             cloudflare=CloudflareConfig(
-                api_token="test_token_123456789",
-                zone_id="test_zone_123456789"
+                api_token="test_token_123456789", zone_id="test_zone_123456789"
             )
         )
 
@@ -214,19 +222,23 @@ class TestSettings:
         config_data = {
             "cloudflare": {
                 "api_token": "test_token_123456789",
-                "zone_id": "test_zone_123456789"
+                "zone_id": "test_zone_123456789",
             },
-            "monitoring": {
-                "load_thresholds": {
-                    "upper": 30.0,
-                    "lower": 20.0
-                }
-            }
+            "monitoring": {"load_thresholds": {"upper": 30.0, "lower": 20.0}},
         }
 
-        with patch('pathlib.Path.exists', return_value=True):
-            with patch('builtins.open', mock_open(read_data='cloudflare:\n  api_token: test_token_123456789\n  zone_id: test_zone_123456789\nmonitoring:\n  load_thresholds:\n    upper: 30.0\n    lower: 20.0')):
-                with patch('yaml.safe_load', return_value=config_data):
+        with patch("pathlib.Path.exists", return_value=True):
+            with patch(
+                "builtins.open",
+                mock_open(
+                    read_data=(
+                        "cloudflare:\n  api_token: test_token_123456789\n"
+                        "  zone_id: test_zone_123456789\nmonitoring:\n"
+                        "  load_thresholds:\n    upper: 30.0\n    lower: 20.0"
+                    )
+                ),
+            ):
+                with patch("yaml.safe_load", return_value=config_data):
                     settings = Settings.from_file(Path("test.yaml"))
 
                     assert settings.cloudflare.api_token == "test_token_123456789"
@@ -242,16 +254,13 @@ class TestSettings:
     def test_environment_variable_substitution(self):
         """Test environment variable substitution."""
         config_data = {
-            "cloudflare": {
-                "api_token": "${CF_API_TOKEN}",
-                "zone_id": "${CF_ZONE_ID}"
-            }
+            "cloudflare": {"api_token": "${CF_API_TOKEN}", "zone_id": "${CF_ZONE_ID}"}
         }
 
-        with patch.dict('os.environ', {
-            'CF_API_TOKEN': 'env_token_123456789',
-            'CF_ZONE_ID': 'env_zone_123456789'
-        }):
+        with patch.dict(
+            "os.environ",
+            {"CF_API_TOKEN": "env_token_123456789", "CF_ZONE_ID": "env_zone_123456789"},
+        ):
             substituted = Settings._substitute_env_vars(config_data)
 
             assert substituted["cloudflare"]["api_token"] == "env_token_123456789"
@@ -261,8 +270,7 @@ class TestSettings:
         """Test converting settings to dictionary."""
         settings = Settings(
             cloudflare=CloudflareConfig(
-                api_token="test_token_123456789",
-                zone_id="test_zone_123456789"
+                api_token="test_token_123456789", zone_id="test_zone_123456789"
             )
         )
 
@@ -282,8 +290,7 @@ class TestValidators:
         """Test successful configuration validation."""
         settings = Settings(
             cloudflare=CloudflareConfig(
-                api_token="test_token_123456789",
-                zone_id="test_zone_123456789"
+                api_token="test_token_123456789", zone_id="test_zone_123456789"
             )
         )
 
@@ -293,22 +300,22 @@ class TestValidators:
     def test_validate_config_missing_api_token(self):
         """Test configuration validation with missing API token."""
         # Create settings with empty API token - this will fail at validation level
-        with pytest.raises(ValueError, match="API token must be at least 10 characters long"):
+        with pytest.raises(
+            ValueError, match="API token must be at least 10 characters long"
+        ):
             Settings(
-                cloudflare=CloudflareConfig(
-                    api_token="",
-                    zone_id="test_zone_123456789"
-                )
+                cloudflare=CloudflareConfig(api_token="", zone_id="test_zone_123456789")
             )
 
     def test_validate_config_missing_zone_id(self):
         """Test configuration validation with missing zone ID."""
         # Create settings with empty zone ID - this will fail at validation level
-        with pytest.raises(ValueError, match="Zone ID must be at least 10 characters long"):
+        with pytest.raises(
+            ValueError, match="Zone ID must be at least 10 characters long"
+        ):
             Settings(
                 cloudflare=CloudflareConfig(
-                    api_token="test_token_123456789",
-                    zone_id=""
+                    api_token="test_token_123456789", zone_id=""
                 )
             )
 
@@ -317,8 +324,7 @@ class TestValidators:
         # Create settings with valid thresholds first
         settings = Settings(
             cloudflare=CloudflareConfig(
-                api_token="test_token_123456789",
-                zone_id="test_zone_123456789"
+                api_token="test_token_123456789", zone_id="test_zone_123456789"
             )
         )
         # Then manually set invalid thresholds to test the validate_config function
@@ -331,19 +337,11 @@ class TestValidators:
 
     def test_validate_config_file_success(self):
         """Test successful configuration file validation."""
-        config_data = {
-            "cloudflare": {
-                "api_token": "test_token_123456789",
-                "zone_id": "test_zone_123456789"
-            }
-        }
-
-        with patch('pathlib.Path.exists', return_value=True):
-            with patch('autouam.config.settings.Settings.from_file') as mock_from_file:
+        with patch("pathlib.Path.exists", return_value=True):
+            with patch("autouam.config.settings.Settings.from_file") as mock_from_file:
                 mock_settings = Settings(
                     cloudflare=CloudflareConfig(
-                        api_token="test_token_123456789",
-                        zone_id="test_zone_123456789"
+                        api_token="test_token_123456789", zone_id="test_zone_123456789"
                     )
                 )
                 mock_from_file.return_value = mock_settings
@@ -353,7 +351,7 @@ class TestValidators:
 
     def test_validate_config_file_not_found(self):
         """Test configuration file validation with non-existent file."""
-        with patch('pathlib.Path.exists', return_value=False):
+        with patch("pathlib.Path.exists", return_value=False):
             errors = validate_config_file(Path("nonexistent.yaml"))
             assert len(errors) == 1
             assert "Configuration file not found" in errors[0]
@@ -366,7 +364,6 @@ class TestValidators:
         assert "monitoring" in sample_config
         assert "logging" in sample_config
         assert "health" in sample_config
-
 
         assert sample_config["cloudflare"]["api_token"] == "${CF_API_TOKEN}"
         assert sample_config["cloudflare"]["zone_id"] == "${CF_ZONE_ID}"

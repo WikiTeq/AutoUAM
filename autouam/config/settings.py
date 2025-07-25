@@ -174,9 +174,6 @@ class HealthConfig(BaseModel):
         return v
 
 
-
-
-
 class Settings(BaseSettings):
     """Main settings configuration."""
 
@@ -194,7 +191,6 @@ class Settings(BaseSettings):
         default_factory=DeploymentConfig  # type: ignore[arg-type]
     )
     health: HealthConfig = Field(default_factory=HealthConfig)  # type: ignore[arg-type]
-
 
     model_config = {
         "env_prefix": "AUTOUAM_",
