@@ -2,7 +2,8 @@
 """
 End-to-end test script for AutoUAM.
 
-This script demonstrates how to test AutoUAM without requiring real Cloudflare credentials.
+This script demonstrates how to test AutoUAM without requiring real Cloudflare
+credentials.
 It starts a mock Cloudflare API server and runs AutoUAM against it.
 
 Usage:
@@ -14,12 +15,9 @@ Requirements:
 """
 
 import asyncio
-import json
-import os
 import signal
 import sys
 import tempfile
-import time
 from pathlib import Path
 from typing import Optional
 
@@ -28,10 +26,11 @@ import yaml
 # Add the project root to the path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from tests.mock_cloudflare_server import MockCloudflareServer
-from autouam.config.settings import Settings
-from autouam.core.uam_manager import UAMManager
-from autouam.health.checks import HealthChecker
+# Local imports after path setup  # noqa: E402
+from autouam.config.settings import Settings  # noqa: E402
+from autouam.core.uam_manager import UAMManager  # noqa: E402
+from autouam.health.checks import HealthChecker  # noqa: E402
+from tests.mock_cloudflare_server import MockCloudflareServer  # noqa: E402
 
 
 class EndToEndTester:
@@ -65,33 +64,22 @@ class EndToEndTester:
                 "api_token": "test_token",
                 "email": "test@example.com",
                 "zone_id": "test_zone_id",
-                "base_url": "http://localhost:8081/client/v4"
+                "base_url": "http://localhost:8081/client/v4",
             },
             "monitoring": {
                 "check_interval": 2,  # Fast for testing
                 "load_thresholds": {"upper": 2.0, "lower": 1.0},
-                "minimum_uam_duration": 60  # Minimum allowed
+                "minimum_uam_duration": 60,  # Minimum allowed
             },
-            "logging": {
-                "level": "INFO",
-                "output": "stdout",
-                "format": "text"
-            },
-            "health": {
-                "enabled": True,
-                "port": 8082
-            },
-            "deployment": {
-                "mode": "daemon"
-            },
-            "security": {
-                "regular_mode": "essentially_off"
-            }
+            "logging": {"level": "INFO", "output": "stdout", "format": "text"},
+            "health": {"enabled": True, "port": 8082},
+            "deployment": {"mode": "daemon"},
+            "security": {"regular_mode": "essentially_off"},
         }
 
         # Create temporary config file
-        config_file = Path(tempfile.mktemp(suffix='.yaml'))
-        with open(config_file, 'w') as f:
+        config_file = Path(tempfile.mktemp(suffix=".yaml"))
+        with open(config_file, "w") as f:
             yaml.dump(config_data, f)
 
         return config_file
@@ -121,11 +109,11 @@ class EndToEndTester:
         result = await checker.check_health()
 
         print(f"Health check result: {result['healthy']}")
-        for check_name, check_result in result['checks'].items():
-            status = "✅" if check_result['healthy'] else "❌"
+        for check_name, check_result in result["checks"].items():
+            status = "✅" if check_result["healthy"] else "❌"
             print(f"  {status} {check_name}: {check_result['status']}")
 
-        return result['healthy']
+        return result["healthy"]
 
     async def test_high_load_scenario(self):
         """Test the high load scenario."""
@@ -142,11 +130,12 @@ class EndToEndTester:
             print(f"High load check result: {result}")
 
             # Check if UAM was enabled
-            if result.get('uam_enabled', False):
+            if result.get("uam_enabled", False):
                 print("✅ UAM was enabled due to high load")
                 return True
             else:
-                print("⚠️  UAM was not enabled (may be already enabled or other reason)")
+                print("⚠️  UAM was not enabled (may be already enabled or other "
+                      "reason)")
                 return True
 
         return False
@@ -177,7 +166,7 @@ class EndToEndTester:
             print(f"Low load check result: {result}")
 
             # Check if UAM was disabled
-            if not result.get('uam_enabled', True):
+            if not result.get("uam_enabled", True):
                 print("✅ UAM was disabled due to low load")
                 return True
             else:
@@ -221,13 +210,13 @@ class EndToEndTester:
                 "api_token": "invalid_token",
                 "email": "test@example.com",
                 "zone_id": "test_zone_id",
-                "base_url": "http://localhost:8081/client/v4"
+                "base_url": "http://localhost:8081/client/v4",
             },
             monitoring=self.settings.monitoring,
             logging=self.settings.logging,
             health=self.settings.health,
             deployment=self.settings.deployment,
-            security=self.settings.security
+            security=self.settings.security,
         )
 
         manager = UAMManager(invalid_settings)
@@ -244,6 +233,7 @@ class EndToEndTester:
     def mock_high_load(self):
         """Context manager to mock high load."""
         import autouam.core.monitor
+
         original_method = autouam.core.monitor.LoadMonitor.get_normalized_load
 
         def mock_high_load(self):
@@ -263,6 +253,7 @@ class EndToEndTester:
     def mock_low_load(self):
         """Context manager to mock low load."""
         import autouam.core.monitor
+
         original_method = autouam.core.monitor.LoadMonitor.get_normalized_load
 
         def mock_low_load(self):
@@ -315,9 +306,9 @@ class EndToEndTester:
                     results.append((test_name, False))
 
             # Print summary
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("📊 TEST SUMMARY")
-            print("="*50)
+            print("=" * 50)
 
             passed = 0
             for test_name, result in results:
@@ -340,7 +331,7 @@ class EndToEndTester:
 async def main():
     """Main entry point."""
     print("🧪 AutoUAM End-to-End Test Suite")
-    print("="*50)
+    print("=" * 50)
 
     tester = EndToEndTester()
     await tester.run_all_tests()
