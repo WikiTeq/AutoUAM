@@ -1,8 +1,11 @@
 """Load average monitoring for AutoUAM."""
 
 import os
+import statistics
 import time
+from collections import deque
 from dataclasses import dataclass
+from typing import Optional
 
 from ..logging.setup import get_logger
 
@@ -25,12 +28,71 @@ class LoadAverage:
         return self.five_minute
 
 
+class LoadBaseline:
+    """Calculate and maintain load average baseline."""
+
+    def __init__(self, max_samples: int = 1440):  # 24 hours at 1-minute intervals
+        """Initialize baseline calculator."""
+        self.logger = get_logger(__name__)
+        self.samples = deque(maxlen=max_samples)
+        self.last_update = 0
+        self.baseline: Optional[float] = None
+
+    def add_sample(self, normalized_load: float, timestamp: float) -> None:
+        """Add a new load sample."""
+        self.samples.append((normalized_load, timestamp))
+        self.logger.debug(
+            "Added load sample", load=normalized_load, timestamp=timestamp
+        )
+
+    def calculate_baseline(self, hours: int = 24) -> Optional[float]:
+        """Calculate baseline from recent samples."""
+        if not self.samples:
+            self.logger.warning("No samples available for baseline calculation")
+            return None
+
+        # Filter samples from the last N hours
+        cutoff_time = time.time() - (hours * 3600)
+        recent_samples = [load for load, ts in self.samples if ts >= cutoff_time]
+
+        if not recent_samples:
+            self.logger.warning(f"No samples in last {hours} hours for baseline")
+            return None
+
+        # Calculate baseline as 95th percentile (to handle occasional spikes)
+        baseline = statistics.quantiles(recent_samples, n=20)[18]  # 95th percentile
+
+        self.baseline = baseline
+        self.last_update = time.time()
+
+        self.logger.info(
+            "Baseline calculated",
+            baseline=baseline,
+            samples_count=len(recent_samples),
+            hours=hours,
+            min_load=min(recent_samples),
+            max_load=max(recent_samples),
+            avg_load=statistics.mean(recent_samples),
+        )
+
+        return baseline
+
+    def get_baseline(self) -> Optional[float]:
+        """Get current baseline value."""
+        return self.baseline
+
+    def should_update_baseline(self, interval_seconds: int) -> bool:
+        """Check if baseline should be updated."""
+        return time.time() - self.last_update >= interval_seconds
+
+
 class LoadMonitor:
     """Monitor system load average on Linux systems."""
 
     def __init__(self):
         """Initialize the load monitor."""
         self.logger = get_logger(__name__)
+        self.baseline = LoadBaseline()
         self._validate_platform()
 
     def _validate_platform(self) -> None:
@@ -39,6 +101,10 @@ class LoadMonitor:
             raise RuntimeError("Load monitoring requires Linux with /proc/loadavg")
 
         self.logger.info("Load monitor initialized for Linux platform")
+
+    def update_baseline(self, hours: int = 24) -> None:
+        """Update the load baseline."""
+        self.baseline.calculate_baseline(hours)
 
     def get_load_average(self) -> LoadAverage:
         """Get current load average from /proc/loadavg."""
@@ -130,6 +196,9 @@ class LoadMonitor:
 
         normalized = load_avg.average / cpu_count
 
+        # Add to baseline for historical tracking
+        self.baseline.add_sample(normalized, load_avg.timestamp)
+
         self.logger.debug(
             "Normalized load calculated",
             raw_load=load_avg.average,
@@ -139,31 +208,71 @@ class LoadMonitor:
 
         return normalized
 
-    def is_high_load(self, threshold: float) -> bool:
+    def is_high_load(
+        self,
+        threshold: float,
+        use_relative: bool = False,
+        relative_multiplier: float = 2.0,
+    ) -> bool:
         """Check if current load is above threshold."""
         normalized_load = self.get_normalized_load()
-        is_high = normalized_load > threshold
 
-        self.logger.info(
-            "Load threshold check",
-            normalized_load=normalized_load,
-            threshold=threshold,
-            is_high=is_high,
-        )
+        if use_relative and self.baseline.get_baseline() is not None:
+            baseline = self.baseline.get_baseline()
+            relative_threshold = baseline * relative_multiplier
+            is_high = normalized_load > relative_threshold
+
+            self.logger.info(
+                "Relative load threshold check",
+                normalized_load=normalized_load,
+                baseline=baseline,
+                relative_threshold=relative_threshold,
+                multiplier=relative_multiplier,
+                is_high=is_high,
+            )
+        else:
+            is_high = normalized_load > threshold
+
+            self.logger.info(
+                "Absolute load threshold check",
+                normalized_load=normalized_load,
+                threshold=threshold,
+                is_high=is_high,
+            )
 
         return is_high
 
-    def is_low_load(self, threshold: float) -> bool:
+    def is_low_load(
+        self,
+        threshold: float,
+        use_relative: bool = False,
+        relative_multiplier: float = 1.5,
+    ) -> bool:
         """Check if current load is below threshold."""
         normalized_load = self.get_normalized_load()
-        is_low = normalized_load < threshold
 
-        self.logger.info(
-            "Load threshold check",
-            normalized_load=normalized_load,
-            threshold=threshold,
-            is_low=is_low,
-        )
+        if use_relative and self.baseline.get_baseline() is not None:
+            baseline = self.baseline.get_baseline()
+            relative_threshold = baseline * relative_multiplier
+            is_low = normalized_load < relative_threshold
+
+            self.logger.info(
+                "Relative load threshold check",
+                normalized_load=normalized_load,
+                baseline=baseline,
+                relative_threshold=relative_threshold,
+                multiplier=relative_multiplier,
+                is_low=is_low,
+            )
+        else:
+            is_low = normalized_load < threshold
+
+            self.logger.info(
+                "Absolute load threshold check",
+                normalized_load=normalized_load,
+                threshold=threshold,
+                is_low=is_low,
+            )
 
         return is_low
 
@@ -172,13 +281,15 @@ class LoadMonitor:
         try:
             load_avg = self.get_load_average()
             cpu_count = self.get_cpu_count()
+            normalized_load = load_avg.average / cpu_count
+            baseline = self.baseline.get_baseline()
 
-            return {
+            info = {
                 "load_average": {
                     "one_minute": load_avg.one_minute,
                     "five_minute": load_avg.five_minute,
                     "fifteen_minute": load_avg.fifteen_minute,
-                    "normalized": load_avg.average / cpu_count,
+                    "normalized": normalized_load,
                 },
                 "processes": {
                     "running": load_avg.running_processes,
@@ -187,6 +298,18 @@ class LoadMonitor:
                 "cpu_count": cpu_count,
                 "timestamp": load_avg.timestamp,
             }
+
+            if baseline is not None:
+                info["baseline"] = {
+                    "value": baseline,
+                    "ratio_to_baseline": (
+                        normalized_load / baseline if baseline > 0 else 0
+                    ),
+                    "last_update": self.baseline.last_update,
+                    "samples_count": len(self.baseline.samples),
+                }
+
+            return info
 
         except Exception as e:
             self.logger.error("Failed to get system info", error=str(e))
