@@ -44,6 +44,27 @@ class LoadThresholds(BaseModel):
     upper: float = Field(2.0, description="Enable UAM when load > this value")
     lower: float = Field(1.0, description="Disable UAM when load < this value")
 
+    # New relative threshold options
+    use_relative_thresholds: bool = Field(
+        False,
+        description=(
+            "Use relative thresholds based on historical baseline "
+            "instead of absolute values"
+        ),
+    )
+    relative_upper_multiplier: float = Field(
+        2.0, description="Enable UAM when load > baseline * this multiplier"
+    )
+    relative_lower_multiplier: float = Field(
+        1.5, description="Disable UAM when load < baseline * this multiplier"
+    )
+    baseline_calculation_hours: int = Field(
+        24, description="Hours of historical data to use for baseline calculation"
+    )
+    baseline_update_interval: int = Field(
+        3600, description="Seconds between baseline recalculations"
+    )
+
     @field_validator("upper", "lower")
     @classmethod
     def validate_thresholds(cls, v: float) -> float:
@@ -60,6 +81,30 @@ class LoadThresholds(BaseModel):
         upper_value = info.data.get("upper") if info.data else None
         if upper_value is not None and v >= upper_value:
             raise ValueError("Lower threshold must be less than upper threshold")
+        return v
+
+    @field_validator("relative_upper_multiplier", "relative_lower_multiplier")
+    @classmethod
+    def validate_relative_multipliers(cls, v: float) -> float:
+        """Validate relative multiplier values."""
+        if v <= 0:
+            raise ValueError("Relative multipliers must be positive")
+        return v
+
+    @field_validator("baseline_calculation_hours")
+    @classmethod
+    def validate_baseline_hours(cls, v: int) -> int:
+        """Validate baseline calculation hours."""
+        if v < 1 or v > 168:  # 1 hour to 1 week
+            raise ValueError("Baseline calculation hours must be between 1 and 168")
+        return v
+
+    @field_validator("baseline_update_interval")
+    @classmethod
+    def validate_baseline_interval(cls, v: int) -> int:
+        """Validate baseline update interval."""
+        if v < 60:  # At least 1 minute
+            raise ValueError("Baseline update interval must be at least 60 seconds")
         return v
 
 

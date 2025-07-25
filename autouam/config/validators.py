@@ -95,7 +95,7 @@ def check_environment_variables() -> List[str]:
 
 
 def generate_sample_config() -> Dict[str, Any]:
-    """Generate a sample configuration dictionary."""
+    """Generate a sample configuration."""
     return {
         "cloudflare": {
             "api_token": "${CF_API_TOKEN}",
@@ -106,6 +106,11 @@ def generate_sample_config() -> Dict[str, Any]:
             "load_thresholds": {
                 "upper": 2.0,
                 "lower": 1.0,
+                "use_relative_thresholds": False,
+                "relative_upper_multiplier": 2.0,
+                "relative_lower_multiplier": 1.5,
+                "baseline_calculation_hours": 24,
+                "baseline_update_interval": 3600,
             },
             "check_interval": 5,
             "minimum_uam_duration": 300,
