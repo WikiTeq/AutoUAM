@@ -102,7 +102,7 @@ export CF_ZONE_ID="your-cloudflare-zone-id"
 
 ### Usage
 
-#### Run as Daemon
+#### Run in Foreground (Continuous Monitoring)
 
 ```bash
 autouam daemon --config config.yaml
@@ -199,9 +199,7 @@ health:
   endpoint: string          # Health endpoint
   metrics_endpoint: string  # Metrics endpoint
 
-terraform:
-  state_backend: string     # s3, gcs, azure, local
-  state_config: object      # State backend configuration
+
 ```
 
 ## Deployment Options
@@ -219,7 +217,7 @@ Create a systemd service file:
 
 ```ini
 [Unit]
-Description=AutoUAM Daemon
+Description=AutoUAM Service
 After=network.target
 
 [Service]
@@ -272,24 +270,7 @@ AutoUAM exposes the following Prometheus metrics:
 - `autouam_cloudflare_api_errors_total` - Total API errors
 - `autouam_health_check_duration_seconds` - Health check duration
 
-## Terraform Integration
 
-AutoUAM provides Terraform integration for infrastructure-as-code deployments:
-
-```hcl
-data "external" "autouam_status" {
-  program = ["autouam", "terraform", "data-source", "--query", "zone_status"]
-
-  query = {
-    config = jsonencode({
-      cloudflare = {
-        api_token = var.cloudflare_api_token
-        zone_id   = var.cloudflare_zone_id
-      }
-    })
-  }
-}
-```
 
 ## Logging
 
