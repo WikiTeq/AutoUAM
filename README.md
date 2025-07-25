@@ -27,6 +27,18 @@ AutoUAM is a modern, production-ready Python system for automatically managing C
 
 ### Installation
 
+#### From PyPI (Recommended)
+
+```bash
+# Install the latest stable version
+pip install autouam
+
+# Or install with specific version
+pip install autouam==1.0.0a1
+```
+
+#### From Source (Development)
+
 ```bash
 # Install from source (recommended for development)
 git clone https://github.com/your-org/AutoUAM.git
