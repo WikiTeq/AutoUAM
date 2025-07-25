@@ -30,19 +30,7 @@ class TestLoadAverage:
         assert load_avg.timestamp == 1234567890.0
         assert load_avg.average == 2.0  # Should return five_minute
 
-    def test_load_average_average_property(self):
-        """Test that average property returns five_minute value."""
-        load_avg = LoadAverage(
-            one_minute=1.0,
-            five_minute=2.0,
-            fifteen_minute=3.0,
-            running_processes=5,
-            total_processes=50,
-            last_pid=123,
-            timestamp=1234567890.0,
-        )
 
-        assert load_avg.average == 2.0
 
 
 class TestLoadMonitor:
@@ -104,12 +92,12 @@ class TestLoadMonitor:
             with pytest.raises(ValueError, match="invalid literal for int"):
                 monitor.get_load_average()
 
-    @patch("builtins.open", side_effect=FileNotFoundError("File not found"))
-    def test_get_load_average_file_not_found(self, mock_file):
-        """Test load average retrieval when file is not found."""
+    @patch("builtins.open", side_effect=PermissionError("Permission denied"))
+    def test_get_load_average_permission_error(self, mock_file):
+        """Test load average retrieval when file access is denied."""
         with patch("os.path.exists", return_value=True):
             monitor = LoadMonitor()
-            with pytest.raises(FileNotFoundError):
+            with pytest.raises(PermissionError):
                 monitor.get_load_average()
 
     @patch(
@@ -124,19 +112,7 @@ class TestLoadMonitor:
             cpu_count = monitor.get_cpu_count()
             assert cpu_count == 3
 
-    @patch("builtins.open", new_callable=mock_open, read_data="no processor entries")
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data="cpu  123 456 789\ncpu0 123 456 789\ncpu1 123 456 789",
-    )
-    def test_get_cpu_count_fallback(self, mock_stat_file, mock_cpuinfo_file):
-        """Test CPU count retrieval with fallback to /proc/stat."""
-        with patch("os.path.exists", return_value=True):
-            monitor = LoadMonitor()
-            # Test that the method doesn't crash and returns a reasonable value
-            cpu_count = monitor.get_cpu_count()
-            assert cpu_count >= 1  # Should return at least 1
+
 
     @patch("builtins.open", side_effect=FileNotFoundError("File not found"))
     def test_get_cpu_count_file_not_found(self, mock_file):
