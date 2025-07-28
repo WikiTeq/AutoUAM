@@ -10,6 +10,7 @@ services:
       - CF_EMAIL=${CF_EMAIL:-contact@wikiteq.com}
     volumes:
       - autouam_logs:/var/log/autouam
+      - ./docker/config.yaml:/etc/autouam/config.yaml:ro
     ports:
       - "8080:8080"
     healthcheck:
