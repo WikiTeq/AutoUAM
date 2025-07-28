@@ -195,6 +195,8 @@ class StateManager:
 
     def get_state_summary(self) -> dict:
         """Get a summary of current state."""
+        # Force reload from file to get the latest state
+        self._state = None
         state = self.load_state()
         duration = self.get_uam_duration()
 
