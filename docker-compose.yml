@@ -3,7 +3,6 @@ services:
     build: .
       context: .
       dockerfile: Dockerfile
-    container_name: autouam
     restart: unless-stopped
     environment:
       - CF_API_TOKEN=${CF_API_TOKEN}
