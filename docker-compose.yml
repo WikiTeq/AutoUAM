@@ -11,7 +11,7 @@ services:
     volumes:
       - autouam_logs:/var/log/autouam
     ports:
-      - "8080:8080"  # Health check endpoint
+      - "8080:8080"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
