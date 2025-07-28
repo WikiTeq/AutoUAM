@@ -136,6 +136,14 @@ class UAMManager:
             # Get current load average
             load_average = self.monitor.get_normalized_load()
 
+            # Update baseline if needed
+            if self.monitor.baseline.should_update_baseline(
+                self.config.monitoring.load_thresholds.baseline_update_interval
+            ):
+                self.monitor.update_baseline(
+                    self.config.monitoring.load_thresholds.baseline_calculation_hours
+                )
+
             # Get current state
             current_state = self.state_manager.load_state()
 
@@ -147,20 +155,75 @@ class UAMManager:
 
     async def _evaluate_and_act(self, load_average: float, current_state) -> None:
         """Evaluate load and take appropriate action."""
-        upper_threshold = self.config.monitoring.load_thresholds.upper
-        lower_threshold = self.config.monitoring.load_thresholds.lower
+        thresholds = self.config.monitoring.load_thresholds
         minimum_duration = self.config.monitoring.minimum_uam_duration
 
+        # Use relative thresholds if enabled and baseline is available
+        use_relative = (
+            thresholds.use_relative_thresholds
+            and self.monitor.baseline.get_baseline() is not None
+        )
+
+        if use_relative:
+            # Use relative thresholds
+            is_high_load = self.monitor.is_high_load(
+                threshold=thresholds.upper,  # Not used when relative=True
+                use_relative=True,
+                relative_multiplier=thresholds.relative_upper_multiplier,
+            )
+            is_low_load = self.monitor.is_low_load(
+                threshold=thresholds.lower,  # Not used when relative=True
+                use_relative=True,
+                relative_multiplier=thresholds.relative_lower_multiplier,
+            )
+
+            # Get the actual threshold values for logging
+            baseline = self.monitor.baseline.get_baseline()
+            if baseline is not None:
+                upper_threshold = baseline * thresholds.relative_upper_multiplier
+                lower_threshold = baseline * thresholds.relative_lower_multiplier
+            else:
+                # Fallback to absolute thresholds if no baseline
+                upper_threshold = thresholds.upper
+                lower_threshold = thresholds.lower
+
+            self.logger.debug(
+                "Using relative thresholds",
+                baseline=baseline,
+                upper_threshold=upper_threshold,
+                lower_threshold=lower_threshold,
+                load_average=load_average,
+            )
+        else:
+            # Use absolute thresholds
+            is_high_load = self.monitor.is_high_load(thresholds.upper)
+            is_low_load = self.monitor.is_low_load(thresholds.lower)
+            upper_threshold = thresholds.upper
+            lower_threshold = thresholds.lower
+
+            self.logger.debug(
+                "Using absolute thresholds",
+                upper_threshold=upper_threshold,
+                lower_threshold=lower_threshold,
+                load_average=load_average,
+            )
+
         # Check if UAM should be enabled
-        if load_average > upper_threshold and not current_state.is_enabled:
-            await self._enable_uam(load_average, upper_threshold, "High load detected")
+        if is_high_load and not current_state.is_enabled:
+            reason = (
+                "High load detected (relative)"
+                if use_relative
+                else "High load detected"
+            )
+            await self._enable_uam(load_average, upper_threshold, reason)
 
         # Check if UAM should be disabled
-        elif load_average < lower_threshold and current_state.is_enabled:
+        elif is_low_load and current_state.is_enabled:
             if self.state_manager.can_disable_uam(minimum_duration):
-                await self._disable_uam(
-                    load_average, lower_threshold, "Load normalized"
+                reason = (
+                    "Load normalized (relative)" if use_relative else "Load normalized"
                 )
+                await self._disable_uam(load_average, lower_threshold, reason)
             else:
                 duration = self.state_manager.get_uam_duration()
                 remaining = minimum_duration - (duration or 0)

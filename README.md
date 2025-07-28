@@ -14,10 +14,11 @@ AutoUAM is a modern, production-ready Python system for automatically managing C
 ## Features
 
 - **Automated UAM Management**: Enable UAM when load exceeds threshold, disable when normalized
-- **Configurable Thresholds**: User-defined upper and lower load limits
+- **Intelligent Load Monitoring**: Support for both absolute and relative load thresholds
+- **Historical Baseline Analysis**: Learn normal load patterns and trigger based on deviations
+- **Configurable Thresholds**: User-defined upper and lower load limits with relative multipliers
 - **Time-based Controls**: Minimum UAM duration to prevent oscillation
 - **Multiple Deployment Options**: Python package, systemd service, container, or cloud function
-- **Infrastructure-as-Code Ready**: Terraform integration and cloud deployment support
 - **Comprehensive Logging**: Structured logging with multiple output formats
 - **Health Monitoring**: Built-in health checks and monitoring endpoints
 - **Security**: Secure credential management and API token handling
@@ -69,13 +70,28 @@ cloudflare:
 
 monitoring:
   load_thresholds:
+    # Absolute thresholds (traditional approach)
     upper: 2.0     # Enable UAM when normalized load > 2.0
     lower: 1.0     # Disable UAM when normalized load < 1.0
+
+    # Relative thresholds (recommended - learns your system's normal patterns)
+    use_relative_thresholds: false  # Set to true to enable relative thresholds
+    relative_upper_multiplier: 2.0  # Enable UAM when load > baseline * 2.0
+    relative_lower_multiplier: 1.5  # Disable UAM when load < baseline * 1.5
+    baseline_calculation_hours: 24  # Hours of historical data for baseline
+    baseline_update_interval: 3600  # Seconds between baseline recalculations
+
   check_interval: 5  # seconds
   minimum_uam_duration: 300  # seconds
 
   # Load thresholds use normalized values (load average ÷ CPU cores)
   # Example: On a 2-core system, normalized load 2.0 = actual load 4.0
+  #
+  # Relative thresholds are recommended because they:
+  # - Learn your system's normal load patterns over time
+  # - Trigger based on deviations from baseline (e.g., 200% increase)
+  # - Work across different server types and workloads
+  # - Avoid false positives from normal load variations
 
 security:
   regular_mode: "essentially_off"  # Normal security level
@@ -171,8 +187,17 @@ cloudflare:
 
 monitoring:
   load_thresholds:
+    # Absolute thresholds
     upper: float            # Enable UAM when load > this value
     lower: float            # Disable UAM when load < this value
+
+    # Relative thresholds (recommended)
+    use_relative_thresholds: bool    # Use relative thresholds based on baseline
+    relative_upper_multiplier: float # Enable UAM when load > baseline * multiplier
+    relative_lower_multiplier: float # Disable UAM when load < baseline * multiplier
+    baseline_calculation_hours: int  # Hours of historical data for baseline
+    baseline_update_interval: int    # Seconds between baseline recalculations
+
   check_interval: int       # Check interval in seconds
   minimum_uam_duration: int # Minimum UAM duration in seconds
 
@@ -200,7 +225,77 @@ health:
   metrics_endpoint: string  # Metrics endpoint
 
 
+## Load Monitoring: Absolute vs Relative Thresholds
+
+AutoUAM supports two approaches to load monitoring, each with different benefits:
+
+### Absolute Thresholds (Traditional)
+
+```yaml
+monitoring:
+  load_thresholds:
+    upper: 2.0  # Enable UAM when normalized load > 2.0
+    lower: 1.0  # Disable UAM when normalized load < 1.0
 ```
+
+**Pros:**
+- Simple to understand and configure
+- Immediate protection without learning period
+- Predictable behavior
+
+**Cons:**
+- Requires manual tuning for each system
+- May trigger false positives on high-traffic servers
+- May miss attacks on low-traffic servers
+- No adaptation to changing workloads
+
+### Relative Thresholds (Recommended)
+
+```yaml
+monitoring:
+  load_thresholds:
+    use_relative_thresholds: true
+    relative_upper_multiplier: 2.0  # Enable UAM when load > baseline * 2.0
+    relative_lower_multiplier: 1.5  # Disable UAM when load < baseline * 1.5
+    baseline_calculation_hours: 24  # Learn from last 24 hours
+    baseline_update_interval: 3600  # Update baseline every hour
+```
+
+**How it works:**
+1. **Learning Phase**: Collects load samples over the specified time period
+2. **Baseline Calculation**: Computes 95th percentile as "normal" load level
+3. **Relative Comparison**: Triggers UAM when current load exceeds baseline by multiplier
+4. **Continuous Adaptation**: Updates baseline periodically to adapt to workload changes
+
+**Pros:**
+- **Context-Aware**: Each system learns its own normal patterns
+- **Adaptive**: Automatically adjusts to different server types and workloads
+- **Robust**: Uses 95th percentile to handle occasional spikes
+- **Intelligent**: Triggers based on significant deviations, not absolute values
+
+**Example Scenarios:**
+
+| Server Type | Normal Baseline | Attack Load | Ratio | Action |
+|-------------|----------------|-------------|-------|---------|
+| High-traffic web | 0.3 (30% CPU) | 1.2 (120% CPU) | 4x | ✅ Trigger UAM |
+| Low-traffic app | 0.05 (5% CPU) | 0.4 (40% CPU) | 8x | ✅ Trigger UAM |
+| Database server | 0.8 (80% CPU) | 1.6 (160% CPU) | 2x | ✅ Trigger UAM |
+
+All scenarios trigger UAM despite having very different absolute load values, because they represent significant deviations from their respective baselines.
+
+**When to use each approach:**
+
+- **Use Relative Thresholds** for:
+  - Production systems with variable workloads
+  - Different server types (web, database, application)
+  - Systems where you want automatic adaptation
+  - Reducing false positives and false negatives
+
+- **Use Absolute Thresholds** for:
+  - Simple, predictable workloads
+  - Systems with very specific load requirements
+  - When you need immediate protection without learning period
+  - Testing and development environments
 
 ## Deployment Options
 
@@ -303,7 +398,11 @@ AutoUAM exposes the following Prometheus metrics:
 - `autouam_cloudflare_api_errors_total` - Total API errors
 - `autouam_health_check_duration_seconds` - Health check duration
 
-
+**Additional Baseline Metrics** (when relative thresholds enabled):
+- `autouam_baseline_value` - Current load baseline value
+- `autouam_baseline_ratio` - Current load ratio to baseline
+- `autouam_baseline_samples_count` - Number of samples in baseline calculation
+- `autouam_baseline_last_update` - Timestamp of last baseline update
 
 ## Logging
 
@@ -370,11 +469,14 @@ pytest tests/test_monitor.py
 pytest tests/test_integration.py --asyncio-mode=auto
 ```
 
-**Current Test Status**: ✅ **65/65 tests passing** (100% success rate)
-- **53 unit tests** - Configuration, monitoring, and core functionality
-- **12 integration tests** - UAM management, health checks, state persistence
+**Current Test Status**: ✅ **92/92 tests passing** (100% success rate)
+- **61 existing tests** - Configuration, monitoring, and core functionality
+- **18 baseline tests** - Dynamic threshold baseline functionality
+- **13 dynamic threshold tests** - Relative threshold configuration and integration
 
 For comprehensive testing information, see [TESTING.md](TESTING.md).
+
+**Dynamic Thresholds Testing**: For detailed testing documentation of the dynamic thresholds feature, see [DYNAMIC_THRESHOLDS_TESTING.md](DYNAMIC_THRESHOLDS_TESTING.md).
 
 ### Code Quality
 
