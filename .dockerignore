@@ -50,6 +50,7 @@ tests/
 requirements-dev.txt
 pyproject.toml
 setup.py
+.env
 
 # Build artifacts
 dist/
