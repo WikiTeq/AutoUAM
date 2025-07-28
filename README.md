@@ -469,11 +469,14 @@ pytest tests/test_monitor.py
 pytest tests/test_integration.py --asyncio-mode=auto
 ```
 
-**Current Test Status**: ✅ **61/61 tests passing** (100% success rate)
-- **49 unit tests** - Configuration, monitoring, and core functionality
-- **12 integration tests** - UAM management, health checks, state persistence
+**Current Test Status**: ✅ **92/92 tests passing** (100% success rate)
+- **61 existing tests** - Configuration, monitoring, and core functionality
+- **18 baseline tests** - Dynamic threshold baseline functionality
+- **13 dynamic threshold tests** - Relative threshold configuration and integration
 
 For comprehensive testing information, see [TESTING.md](TESTING.md).
+
+**Dynamic Thresholds Testing**: For detailed testing documentation of the dynamic thresholds feature, see [DYNAMIC_THRESHOLDS_TESTING.md](DYNAMIC_THRESHOLDS_TESTING.md).
 
 ### Code Quality
 

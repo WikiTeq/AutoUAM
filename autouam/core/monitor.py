@@ -5,7 +5,7 @@ import statistics
 import time
 from collections import deque
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple
 
 from ..logging.setup import get_logger
 
@@ -34,8 +34,8 @@ class LoadBaseline:
     def __init__(self, max_samples: int = 1440):  # 24 hours at 1-minute intervals
         """Initialize baseline calculator."""
         self.logger = get_logger(__name__)
-        self.samples = deque(maxlen=max_samples)
-        self.last_update = 0
+        self.samples: deque[Tuple[float, float]] = deque(maxlen=max_samples)
+        self.last_update: float = 0.0
         self.baseline: Optional[float] = None
 
     def add_sample(self, normalized_load: float, timestamp: float) -> None:
@@ -217,8 +217,8 @@ class LoadMonitor:
         """Check if current load is above threshold."""
         normalized_load = self.get_normalized_load()
 
-        if use_relative and self.baseline.get_baseline() is not None:
-            baseline = self.baseline.get_baseline()
+        baseline = self.baseline.get_baseline()
+        if use_relative and baseline is not None:
             relative_threshold = baseline * relative_multiplier
             is_high = normalized_load > relative_threshold
 
@@ -251,8 +251,8 @@ class LoadMonitor:
         """Check if current load is below threshold."""
         normalized_load = self.get_normalized_load()
 
-        if use_relative and self.baseline.get_baseline() is not None:
-            baseline = self.baseline.get_baseline()
+        baseline = self.baseline.get_baseline()
+        if use_relative and baseline is not None:
             relative_threshold = baseline * relative_multiplier
             is_low = normalized_load < relative_threshold
 

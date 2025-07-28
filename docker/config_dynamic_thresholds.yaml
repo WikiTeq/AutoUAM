@@ -1,0 +1,38 @@
+# AutoUAM Configuration with Dynamic Thresholds
+# This configuration demonstrates how to use relative thresholds based on server history
+
+cloudflare:
+  api_token: "${CLOUDFLARE_API_TOKEN}"
+  zone_id: "${CLOUDFLARE_ZONE_ID}"
+
+monitoring:
+  load_thresholds:
+    # Absolute thresholds (fallback when relative thresholds are disabled or no baseline)
+    upper: 2.0
+    lower: 1.0
+
+    # Dynamic threshold configuration
+    use_relative_thresholds: true                    # Enable dynamic thresholds
+    relative_upper_multiplier: 2.0                  # Enable UAM when load > baseline * 2.0
+    relative_lower_multiplier: 1.5                  # Disable UAM when load < baseline * 1.5
+    baseline_calculation_hours: 24                  # Use last 24 hours for baseline
+    baseline_update_interval: 3600                  # Update baseline every hour
+
+  check_interval: 60                                # Check load every minute
+  minimum_uam_duration: 300                         # Keep UAM enabled for at least 5 minutes
+
+security:
+  regular_mode: "essentially_off"                   # Cloudflare security level when UAM is disabled
+
+logging:
+  level: "INFO"                                     # Log level: DEBUG, INFO, WARNING, ERROR
+  output: "stdout"                                  # Output: stdout, stderr, or file path
+  format: "json"                                    # Format: json, text, or structured
+
+health:
+  enabled: true                                     # Enable health check endpoint
+  port: 8080                                        # Health check port
+  path: "/health"                                   # Health check path
+
+deployment:
+  mode: "daemon"                                    # Deployment mode: daemon, oneshot, or docker

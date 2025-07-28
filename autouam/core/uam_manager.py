@@ -179,8 +179,13 @@ class UAMManager:
 
             # Get the actual threshold values for logging
             baseline = self.monitor.baseline.get_baseline()
-            upper_threshold = baseline * thresholds.relative_upper_multiplier
-            lower_threshold = baseline * thresholds.relative_lower_multiplier
+            if baseline is not None:
+                upper_threshold = baseline * thresholds.relative_upper_multiplier
+                lower_threshold = baseline * thresholds.relative_lower_multiplier
+            else:
+                # Fallback to absolute thresholds if no baseline
+                upper_threshold = thresholds.upper
+                lower_threshold = thresholds.lower
 
             self.logger.debug(
                 "Using relative thresholds",
