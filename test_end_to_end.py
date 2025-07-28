@@ -134,8 +134,9 @@ class EndToEndTester:
                 print("✅ UAM was enabled due to high load")
                 return True
             else:
-                print("⚠️  UAM was not enabled (may be already enabled or other "
-                      "reason)")
+                print(
+                    "⚠️  UAM was not enabled (may be already enabled or other reason)"
+                )
                 return True
 
         return False
