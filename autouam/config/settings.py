@@ -196,6 +196,7 @@ class Settings(BaseSettings):
         "env_prefix": "AUTOUAM_",
         "env_nested_delimiter": "__",
         "case_sensitive": False,
+        "extra": "ignore",
     }
 
     @classmethod
@@ -237,7 +238,16 @@ class Settings(BaseSettings):
             return [Settings._substitute_env_vars(item) for item in data]
         elif isinstance(data, str) and data.startswith("${") and data.endswith("}"):
             env_var = data[2:-1]
-            return os.getenv(env_var, data)
+            # Handle default values in format ${VAR:-default}
+            if ":-" in env_var:
+                var_name, default_value = env_var.split(":-", 1)
+                return os.getenv(var_name, default_value)
+            else:
+                value = os.getenv(env_var)
+                if value is None:
+                    # Keep the original placeholder if no default and env var not set
+                    return data
+                return value
         else:
             return data
 

@@ -1,8 +1,6 @@
 services:
   autouam:
     build: .
-      context: .
-      dockerfile: Dockerfile
     restart: always
     environment:
       - CF_API_TOKEN=${CF_API_TOKEN}
