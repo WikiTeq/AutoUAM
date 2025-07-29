@@ -31,6 +31,35 @@ def validate_config(config: Settings) -> List[str]:
     if config.monitoring.minimum_uam_duration < 60:
         errors.append("Minimum UAM duration must be at least 60 seconds")
 
+    # Validate relative threshold configuration
+    thresholds = config.monitoring.load_thresholds
+    if thresholds.use_relative_thresholds:
+        if thresholds.relative_upper_multiplier <= 0:
+            errors.append("Relative upper multiplier must be positive")
+
+        if thresholds.relative_lower_multiplier <= 0:
+            errors.append("Relative lower multiplier must be positive")
+
+        if thresholds.relative_lower_multiplier >= thresholds.relative_upper_multiplier:
+            errors.append(
+                "Relative lower multiplier must be less than upper multiplier"
+            )
+
+        if (
+            thresholds.baseline_calculation_hours < 1
+            or thresholds.baseline_calculation_hours > 168
+        ):
+            errors.append("Baseline calculation hours must be between 1 and 168")
+
+        if thresholds.baseline_update_interval < 60:
+            errors.append("Baseline update interval must be at least 60 seconds")
+
+        # Ensure baseline update interval is reasonable compared to check interval
+        if thresholds.baseline_update_interval < config.monitoring.check_interval * 10:
+            errors.append(
+                "Baseline update interval should be at least 10x the check interval"
+            )
+
     # Validate logging configuration
     if config.logging.output == "file" and not config.logging.file_path:
         errors.append("Log file path is required when output is 'file'")
