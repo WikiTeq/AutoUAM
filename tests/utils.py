@@ -25,9 +25,7 @@ def create_mock_cloudflare_client(
 
     # Mock async methods
     mock_client.test_connection = AsyncMock(return_value=True)
-    mock_client.get_current_security_level = AsyncMock(
-        return_value="essentially_off"
-    )
+    mock_client.get_current_security_level = AsyncMock(return_value="essentially_off")
     mock_client.enable_under_attack_mode = AsyncMock(return_value=True)
     mock_client.disable_under_attack_mode = AsyncMock(return_value=True)
     mock_client._make_request = AsyncMock(return_value={"success": True})
@@ -94,9 +92,7 @@ def mock_load_monitor_methods(monitor_mock: MagicMock):
 
 def create_temp_config_file(content: str) -> Path:
     """Create a temporary configuration file for testing."""
-    temp_file = tempfile.NamedTemporaryFile(
-        mode="w", suffix=".yaml", delete=False
-    )
+    temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False)
     temp_file.write(content)
     temp_file.close()
     return Path(temp_file.name)

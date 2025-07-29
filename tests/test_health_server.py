@@ -16,6 +16,7 @@ class TestHealthServer:
     def mock_settings(self):
         """Create mock settings for testing."""
         from autouam.config.settings import Settings
+
         return Settings(
             cloudflare={
                 "api_token": "test_token_123456789",
@@ -37,6 +38,7 @@ class TestHealthServer:
     def health_server(self, mock_settings):
         """Create a health server instance for testing."""
         from autouam.health.checks import HealthChecker
+
         health_checker = HealthChecker(mock_settings)
         return HealthServer(mock_settings, health_checker)
 
@@ -55,28 +57,34 @@ class TestHealthServer:
 
         # Mock the health checker
         with patch.object(health_server, "health_checker") as mock_checker:
-            mock_checker.check_health = AsyncMock(return_value={
-                "healthy": True,
-                "timestamp": 1234567890.0,
-                "duration": 0.1,
-                "checks": {
-                    "system_load": {"healthy": True, "details": "Load: 1.5"},
-                    "uam_state": {"healthy": True, "details": "UAM disabled"},
-                    "cloudflare_api": {"healthy": True, "details": "API accessible"}
-                },
-                "summary": {
-                    "last_success": 1234567890.0,
-                    "consecutive_failures": 0,
-                    "max_failures": 3
+            mock_checker.check_health = AsyncMock(
+                return_value={
+                    "healthy": True,
+                    "timestamp": 1234567890.0,
+                    "duration": 0.1,
+                    "checks": {
+                        "system_load": {"healthy": True, "details": "Load: 1.5"},
+                        "uam_state": {"healthy": True, "details": "UAM disabled"},
+                        "cloudflare_api": {
+                            "healthy": True,
+                            "details": "API accessible",
+                        },
+                    },
+                    "summary": {
+                        "last_success": 1234567890.0,
+                        "consecutive_failures": 0,
+                        "max_failures": 3,
+                    },
                 }
-            })
+            )
 
             response = await health_server._health_handler(request)
 
             assert response.status == 200
             # The response is a web.json_response, so we can access the data directly
-            data = response.body.decode('utf-8')
+            data = response.body.decode("utf-8")
             import json
+
             data = json.loads(data)
             assert data["status"] == "healthy"
             assert "checks" in data
@@ -87,27 +95,30 @@ class TestHealthServer:
         request = make_mocked_request("GET", "/health")
 
         with patch.object(health_server, "health_checker") as mock_checker:
-            mock_checker.check_health = AsyncMock(return_value={
-                "healthy": False,
-                "timestamp": 1234567890.0,
-                "duration": 0.1,
-                "checks": {
-                    "system_load": {"healthy": True, "details": "Load: 1.5"},
-                    "uam_state": {"healthy": True, "details": "UAM disabled"},
-                    "cloudflare_api": {"healthy": False, "details": "API error"}
-                },
-                "summary": {
-                    "last_success": 1234567890.0,
-                    "consecutive_failures": 1,
-                    "max_failures": 3
+            mock_checker.check_health = AsyncMock(
+                return_value={
+                    "healthy": False,
+                    "timestamp": 1234567890.0,
+                    "duration": 0.1,
+                    "checks": {
+                        "system_load": {"healthy": True, "details": "Load: 1.5"},
+                        "uam_state": {"healthy": True, "details": "UAM disabled"},
+                        "cloudflare_api": {"healthy": False, "details": "API error"},
+                    },
+                    "summary": {
+                        "last_success": 1234567890.0,
+                        "consecutive_failures": 1,
+                        "max_failures": 3,
+                    },
                 }
-            })
+            )
 
             response = await health_server._health_handler(request)
 
             assert response.status == 503  # Service Unavailable
-            data = response.body.decode('utf-8')
+            data = response.body.decode("utf-8")
             import json
+
             data = json.loads(data)
             assert data["status"] == "unhealthy"
 
@@ -130,8 +141,9 @@ class TestHealthServer:
         response = await health_server._root_handler(request)
 
         assert response.status == 200
-        data = response.body.decode('utf-8')
+        data = response.body.decode("utf-8")
         import json
+
         data = json.loads(data)
         assert "service" in data
         assert "version" in data
@@ -159,8 +171,9 @@ class TestHealthServer:
             response = await health_server._health_handler(request)
 
             assert response.status == 500  # Internal Server Error
-            data = response.body.decode('utf-8')
+            data = response.body.decode("utf-8")
             import json
+
             data = json.loads(data)
             assert "error" in data
 
@@ -180,6 +193,7 @@ class TestHealthServer:
         mock_settings.health.port = 9090
 
         from autouam.health.checks import HealthChecker
+
         health_checker = HealthChecker(mock_settings)
         health_server = HealthServer(mock_settings, health_checker)
 
@@ -196,6 +210,7 @@ class TestHealthServer:
         mock_settings.health.enabled = False
 
         from autouam.health.checks import HealthChecker
+
         health_checker = HealthChecker(mock_settings)
         health_server = HealthServer(mock_settings, health_checker)
 
@@ -211,7 +226,7 @@ class TestHealthServer:
         route_paths = [
             route.resource.canonical
             for route in routes
-            if hasattr(route.resource, 'canonical')
+            if hasattr(route.resource, "canonical")
         ]
 
         assert "/health" in route_paths
@@ -234,17 +249,19 @@ class TestHealthServer:
         request = make_mocked_request("GET", "/health")
 
         with patch.object(health_server, "health_checker") as mock_checker:
-            mock_checker.check_health = AsyncMock(return_value={
-                "healthy": True,
-                "timestamp": 1234567890.0,
-                "duration": 0.1,
-                "checks": {},
-                "summary": {
-                    "last_success": 1234567890.0,
-                    "consecutive_failures": 0,
-                    "max_failures": 3
+            mock_checker.check_health = AsyncMock(
+                return_value={
+                    "healthy": True,
+                    "timestamp": 1234567890.0,
+                    "duration": 0.1,
+                    "checks": {},
+                    "summary": {
+                        "last_success": 1234567890.0,
+                        "consecutive_failures": 0,
+                        "max_failures": 3,
+                    },
                 }
-            })
+            )
 
             response = await health_server._health_handler(request)
 

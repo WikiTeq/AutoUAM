@@ -222,6 +222,7 @@ class TestLoggingSetup:
 
         # Verify that structlog is configured
         import structlog
+
         assert structlog.is_configured()
 
     def test_setup_logging_structlog_json_format(self, mock_logging_config):
@@ -233,6 +234,7 @@ class TestLoggingSetup:
 
         # Verify that structlog is configured
         import structlog
+
         assert structlog.is_configured()
 
     def test_setup_logging_rotating_file_handler(self, mock_logging_config):

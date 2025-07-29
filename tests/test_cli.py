@@ -40,6 +40,7 @@ class TestCLICommands:
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             import yaml
+
             yaml.dump(config_data, f)
             config_path = Path(f.name)
 
@@ -66,37 +67,37 @@ class TestCLICommands:
         # Mock UAMManager
         mock_manager = MagicMock()
         mock_manager.initialize = AsyncMock(return_value=True)
-        mock_manager.check_once = AsyncMock(return_value={
-            "system": {
-                "load_average": {
-                    "one_minute": 1.5,
-                    "five_minute": 1.3,
-                    "fifteen_minute": 1.2,
-                    "normalized": 0.75
+        mock_manager.check_once = AsyncMock(
+            return_value={
+                "system": {
+                    "load_average": {
+                        "one_minute": 1.5,
+                        "five_minute": 1.3,
+                        "fifteen_minute": 1.2,
+                        "normalized": 0.75,
+                    },
+                    "cpu_count": 4,
+                    "processes": {"running": 150, "total": 200},
                 },
-                "cpu_count": 4,
-                "processes": {"running": 150, "total": 200}
-            },
-            "state": {
-                "is_enabled": False,
-                "reason": "Normal load",
-                "last_check": "2023-01-01T00:00:00Z",
-                "load_average": 1.5,
-                "threshold_used": 2.0,
-                "current_duration": None
-            },
-            "config": {
-                "upper_threshold": 2.0,
-                "lower_threshold": 1.0,
-                "check_interval": 30,
-                "minimum_duration": 300
+                "state": {
+                    "is_enabled": False,
+                    "reason": "Normal load",
+                    "last_check": "2023-01-01T00:00:00Z",
+                    "load_average": 1.5,
+                    "threshold_used": 2.0,
+                    "current_duration": None,
+                },
+                "config": {
+                    "upper_threshold": 2.0,
+                    "lower_threshold": 1.0,
+                    "check_interval": 30,
+                    "minimum_duration": 300,
+                },
             }
-        })
+        )
         mock_uam_manager_class.return_value = mock_manager
 
-        result = cli_runner.invoke(
-            main, ["check", "--config", str(temp_config_file)]
-        )
+        result = cli_runner.invoke(main, ["check", "--config", str(temp_config_file)])
         assert result.exit_code == 0
         assert "Load Average" in result.output
 
@@ -109,9 +110,7 @@ class TestCLICommands:
         mock_manager.enable_uam_manual = AsyncMock(return_value=True)
         mock_uam_manager_class.return_value = mock_manager
 
-        result = cli_runner.invoke(
-            main, ["enable", "--config", str(temp_config_file)]
-        )
+        result = cli_runner.invoke(main, ["enable", "--config", str(temp_config_file)])
         assert result.exit_code == 0
         assert "enabled" in result.output.lower()
 
@@ -126,9 +125,7 @@ class TestCLICommands:
         mock_manager.disable_uam_manual = AsyncMock(return_value=True)
         mock_uam_manager_class.return_value = mock_manager
 
-        result = cli_runner.invoke(
-            main, ["disable", "--config", str(temp_config_file)]
-        )
+        result = cli_runner.invoke(main, ["disable", "--config", str(temp_config_file)])
         assert result.exit_code == 0
         assert "disabled" in result.output.lower()
 
@@ -145,8 +142,9 @@ class TestCLICommands:
         # We need to mock the signal handling to prevent the test from hanging
         with patch("signal.signal"):
             result = cli_runner.invoke(
-                main, ["monitor", "--config", str(temp_config_file)],
-                catch_exceptions=False
+                main,
+                ["monitor", "--config", str(temp_config_file)],
+                catch_exceptions=False,
             )
             # The monitor command runs indefinitely, so we expect it to not exit
             # normally. In a real test, we'd need to send a signal to stop it
@@ -155,9 +153,7 @@ class TestCLICommands:
 
     def test_invalid_config_file(self, cli_runner):
         """Test command with invalid config file."""
-        result = cli_runner.invoke(
-            main, ["check", "--config", "nonexistent.yaml"]
-        )
+        result = cli_runner.invoke(main, ["check", "--config", "nonexistent.yaml"])
         assert result.exit_code != 0
         assert "error" in result.output.lower()
 
@@ -175,9 +171,7 @@ class TestCLICommands:
         # Mock UAMManager to raise an exception
         mock_uam_manager_class.side_effect = Exception("Initialization failed")
 
-        result = cli_runner.invoke(
-            main, ["check", "--config", str(temp_config_file)]
-        )
+        result = cli_runner.invoke(main, ["check", "--config", str(temp_config_file)])
         assert result.exit_code != 0
         assert "error" in result.output.lower()
 
@@ -191,9 +185,7 @@ class TestCLICommands:
         mock_manager.initialize = AsyncMock(return_value=False)
         mock_uam_manager_class.return_value = mock_manager
 
-        result = cli_runner.invoke(
-            main, ["check", "--config", str(temp_config_file)]
-        )
+        result = cli_runner.invoke(main, ["check", "--config", str(temp_config_file)])
         assert result.exit_code != 0
         assert "Failed to initialize UAM manager" in result.output
 
@@ -202,32 +194,34 @@ class TestCLICommands:
         with patch("autouam.cli.commands.UAMManager") as mock_uam_manager_class:
             mock_manager = MagicMock()
             mock_manager.initialize = AsyncMock(return_value=True)
-            mock_manager.check_once = AsyncMock(return_value={
-                "system": {
-                    "load_average": {
-                        "one_minute": 1.5,
-                        "five_minute": 1.3,
-                        "fifteen_minute": 1.2,
-                        "normalized": 0.75
+            mock_manager.check_once = AsyncMock(
+                return_value={
+                    "system": {
+                        "load_average": {
+                            "one_minute": 1.5,
+                            "five_minute": 1.3,
+                            "fifteen_minute": 1.2,
+                            "normalized": 0.75,
+                        },
+                        "cpu_count": 4,
+                        "processes": {"running": 150, "total": 200},
                     },
-                    "cpu_count": 4,
-                    "processes": {"running": 150, "total": 200}
-                },
-                "state": {
-                    "is_enabled": False,
-                    "reason": "Normal load",
-                    "last_check": "2023-01-01T00:00:00Z",
-                    "load_average": 1.5,
-                    "threshold_used": 2.0,
-                    "current_duration": None
-                },
-                "config": {
-                    "upper_threshold": 2.0,
-                    "lower_threshold": 1.0,
-                    "check_interval": 30,
-                    "minimum_duration": 300
+                    "state": {
+                        "is_enabled": False,
+                        "reason": "Normal load",
+                        "last_check": "2023-01-01T00:00:00Z",
+                        "load_average": 1.5,
+                        "threshold_used": 2.0,
+                        "current_duration": None,
+                    },
+                    "config": {
+                        "upper_threshold": 2.0,
+                        "lower_threshold": 1.0,
+                        "check_interval": 30,
+                        "minimum_duration": 300,
+                    },
                 }
-            })
+            )
             mock_uam_manager_class.return_value = mock_manager
 
             result = cli_runner.invoke(

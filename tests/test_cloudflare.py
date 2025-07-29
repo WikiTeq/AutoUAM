@@ -5,8 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiohttp import ClientResponseError, ClientSession
 
-from autouam.core.cloudflare import CloudflareClient
-from autouam.core.cloudflare import CloudflareAPIError
+from autouam.core.cloudflare import CloudflareAPIError, CloudflareClient
 
 
 class TestCloudflareClient:
@@ -16,6 +15,7 @@ class TestCloudflareClient:
     def mock_settings(self):
         """Create mock settings for testing."""
         from autouam.config.settings import Settings
+
         return Settings(
             cloudflare={
                 "api_token": "test_token_123456789",
@@ -39,7 +39,7 @@ class TestCloudflareClient:
         return CloudflareClient(
             api_token=mock_settings.cloudflare.api_token,
             zone_id=mock_settings.cloudflare.zone_id,
-            base_url="https://api.cloudflare.com/client/v4"
+            base_url="https://api.cloudflare.com/client/v4",
         )
 
     @pytest.mark.asyncio
@@ -81,7 +81,7 @@ class TestCloudflareClient:
                 request_info=MagicMock(),
                 history=[],
                 status=403,
-                message="Invalid API token"
+                message="Invalid API token",
             )
 
             result = await cloudflare_client.test_connection()
@@ -93,14 +93,13 @@ class TestCloudflareClient:
         with patch.object(cloudflare_client, "_make_request") as mock_request:
             mock_request.return_value = {
                 "success": True,
-                "result": {"value": "essentially_off"}
+                "result": {"value": "essentially_off"},
             }
 
             result = await cloudflare_client.get_current_security_level()
             assert result == "essentially_off"
             mock_request.assert_called_once_with(
-                "GET",
-                f"/zones/{cloudflare_client.zone_id}/settings/security_level"
+                "GET", f"/zones/{cloudflare_client.zone_id}/settings/security_level"
             )
 
     @pytest.mark.asyncio
@@ -111,7 +110,7 @@ class TestCloudflareClient:
                 request_info=MagicMock(),
                 history=[],
                 status=404,
-                message="Zone not found"
+                message="Zone not found",
             )
 
             with pytest.raises(ClientResponseError):
@@ -123,7 +122,7 @@ class TestCloudflareClient:
         with patch.object(cloudflare_client, "_make_request") as mock_request:
             mock_request.return_value = {
                 "success": True,
-                "result": {"value": "under_attack"}
+                "result": {"value": "under_attack"},
             }
 
             result = await cloudflare_client.enable_under_attack_mode()
@@ -131,7 +130,7 @@ class TestCloudflareClient:
             mock_request.assert_called_once_with(
                 "PATCH",
                 f"/zones/{cloudflare_client.zone_id}/settings/security_level",
-                {"value": "under_attack"}
+                {"value": "under_attack"},
             )
 
     @pytest.mark.asyncio
@@ -142,7 +141,7 @@ class TestCloudflareClient:
                 request_info=MagicMock(),
                 history=[],
                 status=429,
-                message="Rate limit exceeded"
+                message="Rate limit exceeded",
             )
 
             with pytest.raises(ClientResponseError):
@@ -154,7 +153,7 @@ class TestCloudflareClient:
         with patch.object(cloudflare_client, "_make_request") as mock_request:
             mock_request.return_value = {
                 "success": True,
-                "result": {"value": "essentially_off"}
+                "result": {"value": "essentially_off"},
             }
 
             result = await cloudflare_client.disable_under_attack_mode(
@@ -164,7 +163,7 @@ class TestCloudflareClient:
             mock_request.assert_called_once_with(
                 "PATCH",
                 f"/zones/{cloudflare_client.zone_id}/settings/security_level",
-                {"value": "essentially_off"}
+                {"value": "essentially_off"},
             )
 
     @pytest.mark.asyncio
@@ -175,7 +174,7 @@ class TestCloudflareClient:
                 request_info=MagicMock(),
                 history=[],
                 status=500,
-                message="Internal server error"
+                message="Internal server error",
             )
 
             with pytest.raises(ClientResponseError):
@@ -214,10 +213,7 @@ class TestCloudflareClient:
         """Test API request with HTTP error."""
         with patch.object(ClientSession, "request") as mock_session_request:
             mock_session_request.side_effect = ClientResponseError(
-                request_info=MagicMock(),
-                history=[],
-                status=400,
-                message="Bad request"
+                request_info=MagicMock(), history=[], status=400, message="Bad request"
             )
 
             with pytest.raises(CloudflareAPIError):
@@ -266,9 +262,9 @@ class TestCloudflareClient:
                     request_info=MagicMock(),
                     history=[],
                     status=429,
-                    message="Rate limit exceeded"
+                    message="Rate limit exceeded",
                 ),
-                {"success": True, "result": "test"}  # Second call succeeds
+                {"success": True, "result": "test"},  # Second call succeeds
             ]
 
             # The client should handle rate limiting internally
