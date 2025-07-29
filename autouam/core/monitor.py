@@ -95,6 +95,11 @@ class LoadMonitor:
         self.baseline = LoadBaseline()
         self._validate_platform()
 
+        # Performance caching
+        self._cpu_count_cache = None
+        self._cpu_count_cache_time = 0.0
+        self._cpu_count_cache_ttl = 300.0  # Cache CPU count for 5 minutes
+
     def _validate_platform(self) -> None:
         """Validate that we're running on a supported platform."""
         import platform
@@ -188,6 +193,15 @@ class LoadMonitor:
 
     def get_cpu_count(self) -> int:
         """Get the number of CPU cores."""
+        current_time = time.time()
+
+        # Return cached CPU count if still valid
+        if (
+            self._cpu_count_cache is not None
+            and current_time - self._cpu_count_cache_time < self._cpu_count_cache_ttl
+        ):
+            return self._cpu_count_cache
+
         try:
             with open("/proc/cpuinfo", "r") as f:
                 content = f.read()
@@ -204,6 +218,10 @@ class LoadMonitor:
                     1 for line in lines if line.startswith("cpu") and line != "cpu\n"
                 )
 
+            # Cache the CPU count
+            self._cpu_count_cache = cpu_count
+            self._cpu_count_cache_time = current_time
+
             self.logger.debug("CPU count determined", cpu_count=cpu_count)
             return cpu_count
 
@@ -211,6 +229,9 @@ class LoadMonitor:
             self.logger.warning(
                 "Failed to determine CPU count, assuming 1", error=str(e)
             )
+            # Cache the fallback value
+            self._cpu_count_cache = 1
+            self._cpu_count_cache_time = current_time
             return 1
 
     def get_normalized_load(self) -> float:

@@ -78,6 +78,10 @@ class StateManager:
         )
         self._state: Optional[UAMState] = None
 
+        # State caching
+        self._state_cache_time = 0.0
+        self._state_cache_ttl = 5.0  # Cache state for 5 seconds
+
         # Validate and sanitize the state file path
         self._validate_state_file_path()
         self._ensure_state_directory()
@@ -145,7 +149,13 @@ class StateManager:
 
     def load_state(self) -> UAMState:
         """Load state from file or create initial state."""
-        if self._state is not None:
+        current_time = time.time()
+
+        # Return cached state if still valid
+        if (
+            self._state is not None
+            and current_time - self._state_cache_time < self._state_cache_ttl
+        ):
             return self._state
 
         state_path = Path(self.state_file)
@@ -160,6 +170,7 @@ class StateManager:
                     raise ValueError("State file contains invalid data format")
 
                 self._state = UAMState.from_dict(data)
+                self._state_cache_time = time.time()
                 self.logger.debug("State loaded from file", state_file=self.state_file)
 
             except (IOError, PermissionError) as e:
@@ -185,6 +196,7 @@ class StateManager:
                 except OSError:
                     pass
                 self._state = self.get_initial_state()
+                self._state_cache_time = time.time()
             except (ValueError, TypeError) as e:
                 self.logger.warning(
                     "State file contains invalid data, using initial state",
@@ -192,8 +204,10 @@ class StateManager:
                     state_file=self.state_file,
                 )
                 self._state = self.get_initial_state()
+                self._state_cache_time = time.time()
         else:
             self._state = self.get_initial_state()
+            self._state_cache_time = time.time()
             self.logger.debug("No state file found, using initial state")
 
         return self._state
@@ -201,6 +215,7 @@ class StateManager:
     def save_state(self, state: UAMState) -> None:
         """Save state to file."""
         self._state = state
+        self._state_cache_time = time.time()
 
         try:
             state_path = Path(self.state_file)

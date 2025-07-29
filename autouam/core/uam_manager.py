@@ -133,19 +133,20 @@ class UAMManager:
     async def _monitoring_cycle(self) -> None:
         """Execute one monitoring cycle."""
         try:
-            # Get current load average
-            load_average = self.monitor.get_normalized_load()
+            # Get current load average (run in thread pool to avoid blocking)
+            load_average = await asyncio.to_thread(self.monitor.get_normalized_load)
 
-            # Update baseline if needed
+            # Update baseline if needed (run in thread pool)
             if self.monitor.baseline.should_update_baseline(
                 self.config.monitoring.load_thresholds.baseline_update_interval
             ):
-                self.monitor.update_baseline(
-                    self.config.monitoring.load_thresholds.baseline_calculation_hours
+                await asyncio.to_thread(
+                    self.monitor.update_baseline,
+                    self.config.monitoring.load_thresholds.baseline_calculation_hours,
                 )
 
-            # Get current state
-            current_state = self.state_manager.load_state()
+            # Get current state (run in thread pool)
+            current_state = await asyncio.to_thread(self.state_manager.load_state)
 
             # Determine action based on load and current state
             await self._evaluate_and_act(load_average, current_state)
