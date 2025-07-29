@@ -119,8 +119,12 @@ class CloudflareClient:
     ) -> Dict[str, Any]:
         """Make an HTTP request with retry logic."""
         await self._ensure_session()
-        assert self._session is not None  # Session is created by _ensure_session
 
+        # Type guard to ensure session is not None
+        if self._session is None:
+            raise RuntimeError("Session was not created properly")
+
+        session = self._session
         url = f"{self.base_url}{endpoint}"
 
         for attempt in range(max_retries + 1):
@@ -134,7 +138,7 @@ class CloudflareClient:
                     attempt=attempt + 1,
                 )
 
-                async with self._session.request(method, url, json=data) as response:
+                async with session.request(method, url, json=data) as response:
                     response_data = await response.json()
 
                     if response.status == 200:

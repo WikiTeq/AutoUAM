@@ -323,9 +323,10 @@ class EndToEndTester:
             if isinstance(result, dict) and result.get("uam_enabled", False):
                 print("✅ UAM was enabled due to high load")
             else:
-                print(
-                    "⚠️  UAM was not enabled " "(may be already enabled or other reason)"
+                message = (
+                    "⚠️  UAM was not enabled (may be already enabled or other reason)"
                 )
+                print(message)
             return True
 
     async def test_low_load_scenario(self) -> bool:
@@ -360,7 +361,8 @@ class EndToEndTester:
             if isinstance(result, dict) and not result.get("uam_enabled", True):
                 print("✅ UAM was disabled due to low load")
             else:
-                print("⚠️  UAM was not disabled " "(may be due to minimum duration)")
+                message = "⚠️  UAM was not disabled (may be due to minimum duration)"
+                print(message)
             return True
 
     async def test_manual_control(self) -> bool:
