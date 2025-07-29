@@ -3,11 +3,31 @@
 import asyncio
 from typing import Optional
 
+import aiohttp
+
 from ..config.settings import Settings
 from ..logging.setup import get_logger
 from .cloudflare import CloudflareClient, CloudflareError
 from .monitor import LoadMonitor
 from .state import StateManager, UAMState
+
+
+class UAMManagerError(Exception):
+    """Base exception for UAM manager errors."""
+
+    pass
+
+
+class UAMManagerInitializationError(UAMManagerError):
+    """Raised when UAM manager fails to initialize."""
+
+    pass
+
+
+class UAMManagerOperationError(UAMManagerError):
+    """Raised when UAM manager operation fails."""
+
+    pass
 
 
 class UAMManager:
@@ -47,8 +67,14 @@ class UAMManager:
             self.logger.info("UAM manager initialized successfully")
             return True
 
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            self.logger.error("Network error during initialization", error=str(e))
+            return False
+        except (ValueError, TypeError) as e:
+            self.logger.error("Configuration error during initialization", error=str(e))
+            return False
         except Exception as e:
-            self.logger.error("Failed to initialize UAM manager", error=str(e))
+            self.logger.error("Unexpected error during initialization", error=str(e))
             return False
 
     async def _sync_state_with_cloudflare(self) -> None:
@@ -126,6 +152,11 @@ class UAMManager:
             self.logger.info("UAM monitoring loop cancelled")
         except Exception as e:
             self.logger.error("UAM monitoring loop error", error=str(e))
+            # Attempt to restart the monitoring loop after a delay
+            await asyncio.sleep(30)  # Wait 30 seconds before restarting
+            if self._running and not self._stop_event.is_set():
+                self.logger.info("Attempting to restart monitoring loop")
+                await self.run()  # Recursive restart
         finally:
             self._running = False
             self.logger.info("UAM monitoring loop stopped")
@@ -151,8 +182,15 @@ class UAMManager:
             # Determine action based on load and current state
             await self._evaluate_and_act(load_average, current_state)
 
+        except (OSError, IOError) as e:
+            self.logger.error("System I/O error in monitoring cycle", error=str(e))
+            # Continue monitoring despite I/O errors
+        except (ValueError, TypeError) as e:
+            self.logger.error("Data validation error in monitoring cycle", error=str(e))
+            # Continue monitoring despite data errors
         except Exception as e:
-            self.logger.error("Error in monitoring cycle", error=str(e))
+            self.logger.error("Unexpected error in monitoring cycle", error=str(e))
+            # Continue monitoring despite unexpected errors
 
     async def _evaluate_and_act(
         self, load_average: float, current_state: "UAMState"
@@ -286,6 +324,8 @@ class UAMManager:
 
         except CloudflareError as e:
             self.logger.error("Failed to enable Under Attack Mode", error=str(e))
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            self.logger.error("Network error enabling Under Attack Mode", error=str(e))
         except Exception as e:
             self.logger.error(
                 "Unexpected error enabling Under Attack Mode", error=str(e)
@@ -324,6 +364,8 @@ class UAMManager:
 
         except CloudflareError as e:
             self.logger.error("Failed to disable Under Attack Mode", error=str(e))
+        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+            self.logger.error("Network error disabling Under Attack Mode", error=str(e))
         except Exception as e:
             self.logger.error(
                 "Unexpected error disabling Under Attack Mode", error=str(e)
@@ -416,6 +458,26 @@ class UAMManager:
         self._running = False
         self._stop_event.set()
         self.logger.info("UAM manager stop requested")
+
+    async def _handle_graceful_degradation(self, error: Exception) -> None:
+        """Handle graceful degradation when errors occur."""
+        self.logger.warning(
+            "Entering graceful degradation mode",
+            error_type=type(error).__name__,
+            error=str(error),
+        )
+
+        # Continue monitoring but with reduced functionality
+        # State management and logging still work
+        try:
+            # Get current state without Cloudflare operations
+            current_state = self.state_manager.load_state()
+            self.logger.info(
+                "Continuing in degraded mode",
+                current_state_enabled=current_state.is_enabled,
+            )
+        except Exception as e:
+            self.logger.error("Failed to get state in degraded mode", error=str(e))
 
     async def check_once(self) -> dict:
         """Perform a single check without starting the monitoring loop."""
