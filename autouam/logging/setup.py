@@ -15,6 +15,11 @@ from ..config.settings import LoggingConfig
 def setup_logging(config: LoggingConfig) -> None:
     """Setup structured logging based on configuration."""
 
+    # Clear existing handlers to prevent duplication
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers[:]:
+        root_logger.removeHandler(handler)
+
     # Configure structlog
     structlog.configure(
         processors=[
@@ -34,20 +39,17 @@ def setup_logging(config: LoggingConfig) -> None:
         cache_logger_on_first_use=True,
     )
 
-    # Configure standard library logging
-    logging.basicConfig(
-        format="%(message)s",
-        stream=_get_output_stream(config),
-        level=getattr(logging, config.level.upper()),
-    )
+    # Set log level
+    root_logger.setLevel(getattr(logging, config.level.upper()))
 
-    # Configure file handler if needed
+    # Configure appropriate handler based on output type
     if config.output == "file" and config.file_path:
         _setup_file_handler(config)
-
-    # Configure syslog handler if needed
     elif config.output == "syslog":
         _setup_syslog_handler(config)
+    else:
+        # Default to stdout/stderr
+        _setup_stream_handler(config)
 
 
 def _get_renderer(format_type: str):
@@ -58,14 +60,15 @@ def _get_renderer(format_type: str):
         return structlog.dev.ConsoleRenderer(colors=True)
 
 
-def _get_output_stream(config: LoggingConfig):
-    """Get the appropriate output stream."""
-    if config.output == "stdout":
-        return sys.stdout
-    elif config.output == "stderr":
-        return sys.stderr
-    else:
-        return sys.stdout
+def _setup_stream_handler(config: LoggingConfig) -> None:
+    """Setup stream-based logging (stdout/stderr)."""
+    stream = sys.stderr if config.output == "stderr" else sys.stdout
+
+    handler = logging.StreamHandler(stream)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
 
 
 def _setup_file_handler(config: LoggingConfig) -> None:
@@ -87,13 +90,8 @@ def _setup_file_handler(config: LoggingConfig) -> None:
         encoding="utf-8",
     )
 
-    # Set formatter
-    if config.format == "json":
-        formatter = logging.Formatter("%(message)s")
-    else:
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+    # Set formatter - use simple formatter since structlog handles the formatting
+    formatter = logging.Formatter("%(message)s")
 
     handler.setFormatter(formatter)
 
@@ -110,13 +108,8 @@ def _setup_syslog_handler(config: LoggingConfig) -> None:
             facility=logging.handlers.SysLogHandler.LOG_DAEMON,
         )
 
-        # Set formatter
-        if config.format == "json":
-            formatter = logging.Formatter("%(message)s")
-        else:
-            formatter = logging.Formatter(
-                "autouam: %(name)s - %(levelname)s - %(message)s"
-            )
+        # Set formatter - use simple formatter since structlog handles the formatting
+        formatter = logging.Formatter("autouam: %(message)s")
 
         handler.setFormatter(formatter)
 
