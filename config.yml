@@ -2,8 +2,8 @@
 # This configuration demonstrates how to use relative thresholds based on server history
 
 cloudflare:
-  api_token: "${CLOUDFLARE_API_TOKEN}"
-  zone_id: "${CLOUDFLARE_ZONE_ID}"
+  api_token: "${CF_API_TOKEN}"
+  zone_id: "${CF_ZONE_ID}"
 
 monitoring:
   load_thresholds:
