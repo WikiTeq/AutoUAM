@@ -465,7 +465,8 @@ def health_check(ctx: click.Context, config: Optional[str]) -> None:
                 else:
                     display_health_result(result)
             finally:
-                # Health checker doesn't have explicit cleanup, but ensure any resources are released
+                # Health checker doesn't have explicit cleanup, but ensure any
+                # resources are released
                 pass
 
         asyncio.run(run_health_check())
@@ -499,7 +500,8 @@ def metrics(ctx: click.Context, config: Optional[str]) -> None:
                 metrics_data = health_checker.get_metrics()
                 console.print(metrics_data)
             finally:
-                # Health checker doesn't have explicit cleanup, but ensure any resources are released
+                # Health checker doesn't have explicit cleanup, but ensure any
+                # resources are released
                 pass
 
         asyncio.run(run_metrics())

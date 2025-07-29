@@ -105,7 +105,8 @@ class LoadMonitor:
             if not os.path.exists("/proc/loadavg"):
                 raise RuntimeError(
                     "Load monitoring requires Linux with /proc/loadavg. "
-                    "This may indicate a containerized environment or non-standard Linux distribution."
+                    "This may indicate a containerized environment or "
+                    "non-standard Linux distribution."
                 )
             self.logger.info("Load monitor initialized for Linux platform")
         elif system == "darwin":

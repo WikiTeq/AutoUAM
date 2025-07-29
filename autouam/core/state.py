@@ -159,7 +159,7 @@ class StateManager:
 
                 self.logger.debug("State saved to file", state_file=self.state_file)
 
-            except (IOError, PermissionError) as e:
+            except (IOError, PermissionError):
                 # Clean up temp file if it exists
                 if temp_path.exists():
                     try:
