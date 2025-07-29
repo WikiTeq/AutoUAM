@@ -30,6 +30,11 @@ AutoUAM is a vibe-coded Python system for automatically managing Cloudflare's Un
 pip install autouam
 ```
 
+**Requirements:**
+- Python 3.8+ with pip
+- The `autouam` command will be installed to `~/.local/bin/` (user installation) or `/usr/local/bin/` (system installation)
+- **Note:** If installed to `~/.local/bin/`, add it to your PATH: `export PATH=$PATH:~/.local/bin`
+
 #### From Source (Development)
 
 ```bash
@@ -43,6 +48,16 @@ pip install -e .
 # Or install development dependencies
 pip install -e ".[dev]"
 ```
+
+**Requirements:**
+- Python 3.8+ with venv support
+- Git for cloning the repository
+- Build tools (usually included with python3-dev)
+
+**Important Notes:**
+- The source version may be different from the PyPI version
+- Always activate the virtual environment before using: `source venv/bin/activate`
+- For production use, prefer the PyPI version for stability
 
 ### Configuration
 
@@ -108,6 +123,12 @@ export CF_API_TOKEN="your-cloudflare-api-token"
 export CF_ZONE_ID="your-cloudflare-zone-id"
 ```
 
+**Configuration Validation:**
+- AutoUAM validates that API tokens and zone IDs are present and at least 10 characters long
+- Configuration errors will prevent the daemon from starting
+- Use `autouam config validate` to check your configuration before starting
+- Environment variables referenced in config files must be set before running AutoUAM
+
 ### Usage
 
 #### Run in Foreground (Continuous Monitoring)
@@ -159,7 +180,25 @@ autouam metrics show --config config.yaml
 
 ### Environment Variables
 
-All configuration values can be overridden with environment variables:
+AutoUAM supports environment variables in two ways:
+
+#### 1. Environment Variable Substitution in Config Files
+You can reference environment variables in your config file using `${VAR_NAME}` syntax:
+
+```yaml
+cloudflare:
+  api_token: "${CF_API_TOKEN}"
+  zone_id: "${CF_ZONE_ID}"
+```
+
+Then set the environment variables:
+```bash
+export CF_API_TOKEN="your-cloudflare-api-token"
+export CF_ZONE_ID="your-cloudflare-zone-id"
+```
+
+#### 2. Direct Environment Variable Override
+All configuration values can be overridden with environment variables using the `AUTOUAM_` prefix:
 
 ```bash
 export AUTOUAM_CLOUDFLARE__API_TOKEN="your-token"
@@ -168,6 +207,8 @@ export AUTOUAM_MONITORING__LOAD_THRESHOLDS__UPPER="2.0"
 export AUTOUAM_MONITORING__LOAD_THRESHOLDS__LOWER="1.0"
 export AUTOUAM_LOGGING__LEVEL="INFO"
 ```
+
+**Note**: Environment variable substitution in config files (method 1) is the recommended approach for sensitive values like API tokens.
 
 ### Configuration Validation
 
@@ -334,10 +375,20 @@ Group=autouam
 ExecStart=/usr/local/bin/autouam daemon --config /etc/autouam/config.yaml
 Restart=always
 RestartSec=10
+Environment=CF_API_TOKEN=your-api-token
+Environment=CF_ZONE_ID=your-zone-id
 
 [Install]
 WantedBy=multi-user.target
 ```
+
+**Setup Steps:**
+1. Install AutoUAM globally: `sudo pip3 install autouam`
+2. Create service user: `sudo useradd -r -s /bin/false autouam`
+3. Create config directory: `sudo mkdir -p /etc/autouam`
+4. Copy config file: `sudo cp config.yaml /etc/autouam/`
+5. Set permissions: `sudo chown -R autouam:autouam /etc/autouam`
+6. Enable and start service: `sudo systemctl enable autouam && sudo systemctl start autouam`
 
 ### 3. Docker Container
 
@@ -350,13 +401,13 @@ export CF_ZONE_ID="your-cloudflare-zone-id"
 export CF_EMAIL="your-email@example.com"
 
 # Build and run with Docker Compose
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f autouam
+docker compose logs -f autouam
 
 # Stop the service
-docker-compose down
+docker compose down
 ```
 
 #### Using Docker directly
@@ -377,12 +428,10 @@ docker run -d \
   autouam
 ```
 
-The Docker container includes:
-- Non-root user for security
-- Health checks on port 8080
-- Volume for persistent logs
-- Environment variable configuration
-- Automatic restart policy
+**Important Notes:**
+- The container uses the CMD directive, not ENTRYPOINT, so commands must be prefixed: `docker run autouam autouam --version`
+- Container will exit if Cloudflare API connection fails during initialization
+- Health checks use curl to test the /health endpoint
 
 ### 4. Cloud Functions
 
