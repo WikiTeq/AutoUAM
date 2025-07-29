@@ -177,6 +177,26 @@ export AUTOUAM_MONITORING__LOAD_THRESHOLDS__LOWER="1.0"
 export AUTOUAM_LOGGING__LEVEL="INFO"
 ```
 
+### Configuration Validation
+
+AutoUAM includes comprehensive configuration validation to prevent runtime errors:
+
+#### Validation Features
+- **Required Fields**: Validates all required configuration fields
+- **Type Checking**: Ensures correct data types for all values
+- **Range Validation**: Validates numeric values within acceptable ranges
+- **Relative Threshold Validation**: Comprehensive validation for relative threshold configuration
+- **File Permissions**: Checks file and directory permissions
+- **Environment Variables**: Validates environment variable substitution
+
+#### Relative Threshold Validation
+When using relative thresholds, AutoUAM validates:
+- **Multiplier Values**: Must be positive numbers
+- **Multiplier Relationships**: Lower multiplier must be less than upper multiplier
+- **Baseline Hours**: Must be between 1 and 168 hours (1 week)
+- **Update Interval**: Must be at least 60 seconds
+- **Interval Relationships**: Baseline update interval should be at least 10x the check interval
+
 ### Configuration Schema
 
 ```yaml
@@ -378,7 +398,7 @@ AutoUAM can be deployed as a cloud function for serverless operation.
 
 ## Health Monitoring
 
-AutoUAM provides comprehensive health monitoring:
+AutoUAM provides comprehensive health monitoring with built-in reliability features:
 
 ### Health Endpoints
 
@@ -386,6 +406,28 @@ AutoUAM provides comprehensive health monitoring:
 - `/metrics` - Prometheus metrics
 - `/ready` - Readiness probe
 - `/live` - Liveness probe
+
+### Reliability Features
+
+AutoUAM's health monitoring includes several reliability improvements:
+
+#### Timeout Protection
+- **API Timeouts**: 10-second timeout for Cloudflare API calls
+- **Load Check Timeouts**: 5-second timeout for system load monitoring
+- **Automatic Retries**: Failed checks are retried once with exponential backoff
+
+#### Circuit Breaker Pattern
+- **Failure Tracking**: Monitors consecutive API failures
+- **Circuit Breaker**: Opens circuit after 3 consecutive failures
+- **Automatic Recovery**: Circuit resets after 60 seconds
+- **Graceful Degradation**: System remains operational during API outages
+
+#### Graceful Degradation
+- **Critical vs Non-Critical**: Distinguishes between critical and non-critical failures
+- **Load Failures**: Critical (system may be overloaded)
+- **API Failures**: Critical (required for UAM functionality)
+- **State Failures**: Non-critical (state management issues)
+- **Degraded Mode**: System reports healthy but degraded when non-critical components fail
 
 ### Metrics
 
@@ -406,7 +448,7 @@ AutoUAM exposes the following Prometheus metrics:
 
 ## Logging
 
-AutoUAM uses structured logging with support for multiple formats:
+AutoUAM uses structured logging with support for multiple formats and improved reliability:
 
 ### Log Formats
 
@@ -415,9 +457,9 @@ AutoUAM uses structured logging with support for multiple formats:
 
 ### Log Outputs
 
-- **File**: Rotating log files
-- **stdout**: Standard output
-- **syslog**: System logging
+- **File**: Rotating log files with automatic cleanup
+- **stdout**: Standard output for containerized deployments
+- **syslog**: System logging for systemd services
 
 ### Log Levels
 
@@ -425,6 +467,23 @@ AutoUAM uses structured logging with support for multiple formats:
 - **INFO**: General operational messages
 - **WARNING**: Warning messages
 - **ERROR**: Error messages
+
+### Logging Improvements
+
+#### Handler Management
+- **Automatic Cleanup**: Removes existing handlers to prevent duplication
+- **Proper Initialization**: Ensures clean logging setup on each initialization
+- **Resource Management**: Proper cleanup of file handlers and streams
+
+#### Formatter Consistency
+- **Unified Formatting**: Consistent formatting across all output types
+- **Structlog Integration**: Proper integration with structured logging
+- **Context Preservation**: Maintains structured log context across handlers
+
+#### Error Handling
+- **Graceful Fallbacks**: Falls back to stdout if file logging fails
+- **Permission Handling**: Handles permission errors gracefully
+- **Directory Creation**: Automatically creates log directories when needed
 
 ## Security
 
@@ -469,10 +528,13 @@ pytest tests/test_monitor.py
 pytest tests/test_integration.py --asyncio-mode=auto
 ```
 
-**Current Test Status**: ✅ **92/92 tests passing** (100% success rate)
+**Current Test Status**: ✅ **153/153 tests passing** (100% success rate)
 - **61 existing tests** - Configuration, monitoring, and core functionality
 - **18 baseline tests** - Dynamic threshold baseline functionality
 - **13 dynamic threshold tests** - Relative threshold configuration and integration
+- **18 logging tests** - Logging setup and configuration
+- **13 health server tests** - Health monitoring and metrics
+- **30 integration tests** - End-to-end functionality and state persistence
 
 For comprehensive testing information, see [TESTING.md](TESTING.md).
 
