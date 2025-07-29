@@ -42,7 +42,7 @@ pip install autouam==1.0.0a3
 
 ```bash
 # Install from source (recommended for development)
-git clone https://github.com/your-org/AutoUAM.git
+git clone https://github.com/wikiteq/AutoUAM.git
 cd AutoUAM
 python3 -m venv venv
 source venv/bin/activate
@@ -505,7 +505,7 @@ AutoUAM uses structured logging with support for multiple formats and improved r
 ### Setup Development Environment
 
 ```bash
-git clone https://github.com/your-org/AutoUAM.git
+git clone https://github.com/wikiteq/AutoUAM.git
 cd AutoUAM
 python3 -m venv venv
 source venv/bin/activate

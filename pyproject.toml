@@ -56,10 +56,10 @@ dev = [
 autouam = "autouam.cli.commands:main"
 
 [project.urls]
-Homepage = "https://github.com/your-org/AutoUAM"
-Documentation = "https://github.com/your-org/AutoUAM#readme"
-Repository = "https://github.com/your-org/AutoUAM"
-Issues = "https://github.com/your-org/AutoUAM/issues"
+Homepage = "https://github.com/wikiteq/AutoUAM"
+Documentation = "https://github.com/wikiteq/AutoUAM#readme"
+Repository = "https://github.com/wikiteq/AutoUAM"
+Issues = "https://github.com/wikiteq/AutoUAM/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
