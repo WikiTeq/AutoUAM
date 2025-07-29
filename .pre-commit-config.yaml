@@ -28,9 +28,11 @@ repos:
       - id: flake8
         args: [--max-line-length=88, --extend-ignore=E203,W503]
 
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.17.0
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-PyYAML]
-        args: [--ignore-missing-imports]
+# Disable mypy in pre-commit due to dependency conflicts
+# Run mypy manually: mypy autouam/
+# - repo: https://github.com/pre-commit/mirrors-mypy
+#   rev: v1.17.0
+#   hooks:
+#     - id: mypy
+#       additional_dependencies: [types-PyYAML]
+#       args: [--config-file=pyproject.toml]
