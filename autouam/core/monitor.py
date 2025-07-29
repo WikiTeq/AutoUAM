@@ -59,8 +59,27 @@ class LoadBaseline:
             self.logger.warning(f"No samples in last {hours} hours for baseline")
             return None
 
+        # Check if we have enough samples for quantile calculation
+        if len(recent_samples) < 2:
+            self.logger.warning("Need at least 2 samples for baseline calculation")
+            return None
+
         # Calculate baseline as 95th percentile (to handle occasional spikes)
-        baseline = statistics.quantiles(recent_samples, n=20)[18]  # 95th percentile
+        # Use a smaller n value if we don't have enough samples
+        n_quantiles = min(20, len(recent_samples))
+        quantile_index = min(
+            18, n_quantiles - 1
+        )  # 95th percentile or closest available
+
+        try:
+            baseline = statistics.quantiles(recent_samples, n=n_quantiles)[
+                quantile_index
+            ]
+        except (ValueError, IndexError) as e:
+            self.logger.warning(
+                f"Failed to calculate quantile: {e}, using mean instead"
+            )
+            baseline = statistics.mean(recent_samples)
 
         self.baseline = baseline
         self.last_update = time.time()

@@ -70,6 +70,10 @@ class CloudflareClient:
     async def _ensure_session(self) -> None:
         """Ensure HTTP session is created."""
         if self._session is None or self._session.closed:
+            # Close any existing session properly
+            if self._session and not self._session.closed:
+                await self._session.close()
+
             timeout = ClientTimeout(total=self.timeout)
             self._session = aiohttp.ClientSession(
                 timeout=timeout,
@@ -78,6 +82,7 @@ class CloudflareClient:
                     "Content-Type": "application/json",
                     "User-Agent": "AutoUAM/1.0.0a3",
                 },
+                connector=aiohttp.TCPConnector(limit=10, limit_per_host=5),
             )
 
     async def close(self) -> None:
@@ -181,6 +186,13 @@ class CloudflareClient:
                         )
 
             except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                # If session is closed, recreate it for next attempt
+                if self._session and self._session.closed:
+                    self.logger.warning(
+                        "Session was closed, recreating for next attempt"
+                    )
+                    self._session = None
+
                 if attempt < max_retries:
                     wait_time = 2**attempt
                     self.logger.warning(
@@ -255,4 +267,5 @@ class CloudflareClient:
             return security_level
         except Exception as e:
             self.logger.error("Failed to get current security level", error=str(e))
+            # Re-raise the exception to maintain the original behavior
             raise
