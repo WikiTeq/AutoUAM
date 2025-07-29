@@ -84,9 +84,9 @@ class CLIContext:
 )
 @click.option("--quiet", "-q", is_flag=True, help="Suppress output")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.pass_obj
+@click.pass_context
 def main(
-    obj: CLIContext,
+    ctx: click.Context,
     config: Optional[str],
     log_level: str,
     dry_run: bool,
@@ -96,9 +96,7 @@ def main(
 ) -> None:
     """AutoUAM - Automated Cloudflare Under Attack Mode management."""
     # Initialize CLI context
-    if obj is None:
-        obj = CLIContext()  # type: ignore[unreachable]
-
+    obj = CLIContext()
     obj.config_path = config
     obj.log_level = log_level
     obj.dry_run = dry_run
@@ -128,10 +126,14 @@ def main(
         )
         setup_logging(logging_config)
 
+    # Store the context object
+    ctx.obj = obj
+
 
 @main.command()
-@click.pass_obj
-def daemon(obj: CLIContext) -> None:
+@click.pass_context
+def daemon(ctx: click.Context) -> None:
+    obj = ctx.obj
     """Run AutoUAM as a daemon."""
     if not obj.settings:
         print_error("Configuration file is required for daemon mode")
@@ -180,8 +182,9 @@ def daemon(obj: CLIContext) -> None:
 
 
 @main.command()
-@click.pass_obj
-def check(obj: CLIContext) -> None:
+@click.pass_context
+def check(ctx: click.Context) -> None:
+    obj = ctx.obj
     """Perform a one-time check."""
     try:
         if not obj.settings:
@@ -216,8 +219,9 @@ def check(obj: CLIContext) -> None:
 
 
 @main.command()
-@click.pass_obj
-def enable(obj: CLIContext) -> None:
+@click.pass_context
+def enable(ctx: click.Context) -> None:
+    obj = ctx.obj
     """Manually enable Under Attack Mode."""
     if not obj.settings:
         print_error("Configuration file is required for this command")
@@ -252,8 +256,9 @@ def enable(obj: CLIContext) -> None:
 
 
 @main.command()
-@click.pass_obj
-def disable(obj: CLIContext) -> None:
+@click.pass_context
+def disable(ctx: click.Context) -> None:
+    obj = ctx.obj
     """Manually disable Under Attack Mode."""
     if not obj.settings:
         print_error("Configuration file is required for this command")
@@ -288,8 +293,9 @@ def disable(obj: CLIContext) -> None:
 
 
 @main.command()
-@click.pass_obj
-def status(obj: CLIContext) -> None:
+@click.pass_context
+def status(ctx: click.Context) -> None:
+    obj = ctx.obj
     """Show current status."""
     if not obj.settings:
         print_error("Configuration file is required for this command")
@@ -332,8 +338,8 @@ def config() -> None:
 
 @config.command()
 @click.argument("config_path", type=click.Path())
-@click.pass_obj
-def validate(obj: CLIContext, config_path: str) -> None:
+@click.pass_context
+def validate(ctx: click.Context, config_path: str) -> None:
     """Validate configuration file."""
     path = Path(config_path)
 
@@ -354,8 +360,9 @@ def validate(obj: CLIContext, config_path: str) -> None:
 
 @config.command()
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-@click.pass_obj
-def generate(obj: CLIContext, output: Optional[str]) -> None:
+@click.pass_context
+def generate(ctx: click.Context, output: Optional[str]) -> None:
+    obj = ctx.obj
     """Generate sample configuration."""
     sample_config = generate_sample_config()
 
@@ -383,8 +390,9 @@ def generate(obj: CLIContext, output: Optional[str]) -> None:
 
 
 @config.command()
-@click.pass_obj
-def show(obj: CLIContext) -> None:
+@click.pass_context
+def show(ctx: click.Context) -> None:
+    obj = ctx.obj
     """Show current configuration."""
     if not obj.settings:
         print_error("Configuration file is required for this command")
@@ -418,8 +426,9 @@ def health() -> None:
 
 
 @health.command()
-@click.pass_obj
-def health_check(obj: CLIContext) -> None:
+@click.pass_context
+def health_check(ctx: click.Context) -> None:
+    obj = ctx.obj
     """Perform health check."""
     if not obj.settings:
         print_error("Configuration file is required for this command")
@@ -462,8 +471,9 @@ def health_check(obj: CLIContext) -> None:
 
 
 @health.command()
-@click.pass_obj
-def metrics(obj: CLIContext) -> None:
+@click.pass_context
+def metrics(ctx: click.Context) -> None:
+    obj = ctx.obj
     """Show metrics."""
     if not obj.settings:
         print_error("Configuration file is required for this command")
