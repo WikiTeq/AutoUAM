@@ -112,7 +112,7 @@ class MonitoringConfig(BaseModel):
     """Monitoring configuration."""
 
     load_thresholds: LoadThresholds = Field(
-        default_factory=LoadThresholds  # type: ignore[arg-type]
+        default_factory=LoadThresholds
     )
     check_interval: int = Field(60, description="Check interval in seconds")
     minimum_uam_duration: int = Field(
@@ -224,18 +224,18 @@ class Settings(BaseSettings):
 
     cloudflare: CloudflareConfig
     monitoring: MonitoringConfig = Field(
-        default_factory=MonitoringConfig  # type: ignore[arg-type]
+        default_factory=MonitoringConfig
     )
     security: SecurityConfig = Field(
-        default_factory=SecurityConfig  # type: ignore[arg-type]
+        default_factory=SecurityConfig
     )
     logging: LoggingConfig = Field(
-        default_factory=LoggingConfig  # type: ignore[arg-type]
+        default_factory=LoggingConfig
     )
     deployment: DeploymentConfig = Field(
-        default_factory=DeploymentConfig  # type: ignore[arg-type]
+        default_factory=DeploymentConfig
     )
-    health: HealthConfig = Field(default_factory=HealthConfig)  # type: ignore[arg-type]
+    health: HealthConfig = Field(default_factory=HealthConfig)
 
     model_config = {
         "env_prefix": "AUTOUAM_",

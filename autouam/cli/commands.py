@@ -97,7 +97,7 @@ def main(
     """AutoUAM - Automated Cloudflare Under Attack Mode management."""
     # Initialize CLI context
     if obj is None:
-        obj = CLIContext()
+        obj = CLIContext()  # type: ignore[unreachable]
 
     obj.config_path = config
     obj.log_level = log_level
@@ -150,6 +150,7 @@ def daemon(obj: CLIContext) -> None:
 
         # Create and run UAM manager
         async def run_daemon() -> None:
+            assert obj.settings is not None
             uam_manager = UAMManager(obj.settings)
 
             # Start health server if enabled
@@ -183,7 +184,10 @@ def daemon(obj: CLIContext) -> None:
 def check(obj: CLIContext) -> None:
     """Perform a one-time check."""
     try:
-        settings = obj.settings or Settings()  # type: ignore[call-arg]
+        if not obj.settings:
+            print_error("Configuration file is required for this command")
+            sys.exit(1)
+        settings = obj.settings
         setup_logging(settings.logging)
 
         async def run_check() -> None:
@@ -223,6 +227,7 @@ def enable(obj: CLIContext) -> None:
         setup_logging(obj.settings.logging)
 
         async def run_enable() -> None:
+            assert obj.settings is not None
             uam_manager = UAMManager(obj.settings)
             try:
                 if not await uam_manager.initialize():
@@ -258,6 +263,7 @@ def disable(obj: CLIContext) -> None:
         setup_logging(obj.settings.logging)
 
         async def run_disable() -> None:
+            assert obj.settings is not None
             uam_manager = UAMManager(obj.settings)
             try:
                 if not await uam_manager.initialize():
@@ -293,6 +299,7 @@ def status(obj: CLIContext) -> None:
         setup_logging(obj.settings.logging)
 
         async def run_status() -> None:
+            assert obj.settings is not None
             uam_manager = UAMManager(obj.settings)
             try:
                 if not await uam_manager.initialize():
@@ -422,6 +429,7 @@ def health_check(obj: CLIContext) -> None:
         setup_logging(obj.settings.logging)
 
         async def run_health_check() -> None:
+            assert obj.settings is not None
             health_checker = HealthChecker(obj.settings)
             try:
                 await health_checker.initialize()
@@ -465,6 +473,7 @@ def metrics(obj: CLIContext) -> None:
         setup_logging(obj.settings.logging)
 
         async def run_metrics() -> None:
+            assert obj.settings is not None
             health_checker = HealthChecker(obj.settings)
             try:
                 await health_checker.initialize()
