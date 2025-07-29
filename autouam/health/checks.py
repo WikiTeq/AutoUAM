@@ -1,5 +1,6 @@
 """Health check implementations for AutoUAM."""
 
+import asyncio
 import time
 from typing import Any, Dict, Optional
 
@@ -48,6 +49,15 @@ class HealthChecker:
         self._last_success = 0.0
         self._consecutive_failures = 0
         self._max_failures = 3
+
+        # Circuit breaker state
+        self._circuit_open = False
+        self._circuit_open_time = 0.0
+        self._circuit_timeout = 60.0  # 60 seconds
+
+        # Timeout settings
+        self._api_timeout = 10.0  # 10 seconds for API calls
+        self._load_timeout = 5.0  # 5 seconds for load checks
 
     async def initialize(self) -> bool:
         """Initialize health checker."""
@@ -145,41 +155,62 @@ class HealthChecker:
             }
 
     async def _check_system_load(self) -> Dict[str, Any]:
-        """Check system load health."""
-        try:
-            system_info = self.monitor.get_system_info()
+        """Check system load health with timeout and retry logic."""
+        for attempt in range(2):  # Retry once
+            try:
+                # Use timeout for load check
+                system_info = await asyncio.wait_for(
+                    asyncio.to_thread(self.monitor.get_system_info),
+                    timeout=self._load_timeout,
+                )
 
-            if "error" in system_info:
+                if "error" in system_info:
+                    if attempt == 0:  # First attempt failed, retry
+                        await asyncio.sleep(0.1)
+                        continue
+                    return {
+                        "healthy": False,
+                        "status": "System load check failed",
+                        "error": system_info["error"],
+                    }
+
+                # Check if load is reasonable (not too high for extended periods)
+                load_avg = system_info["load_average"]["normalized"]
+                cpu_count = system_info["cpu_count"]
+
+                # Consider unhealthy if load is extremely high (> 100 per CPU)
+                is_healthy = load_avg < (cpu_count * 100)
+
                 return {
-                    "healthy": False,
-                    "status": "System load check failed",
-                    "error": system_info["error"],
+                    "healthy": is_healthy,
+                    "status": (
+                        "System load normal"
+                        if is_healthy
+                        else "System load extremely high"
+                    ),
+                    "load_average": load_avg,
+                    "cpu_count": cpu_count,
+                    "raw_load": system_info["load_average"],
+                    "processes": system_info["processes"],
                 }
 
-            # Check if load is reasonable (not too high for extended periods)
-            load_avg = system_info["load_average"]["normalized"]
-            cpu_count = system_info["cpu_count"]
-
-            # Consider unhealthy if load is extremely high (> 100 per CPU)
-            is_healthy = load_avg < (cpu_count * 100)
-
-            return {
-                "healthy": is_healthy,
-                "status": (
-                    "System load normal" if is_healthy else "System load extremely high"
-                ),
-                "load_average": load_avg,
-                "cpu_count": cpu_count,
-                "raw_load": system_info["load_average"],
-                "processes": system_info["processes"],
-            }
-
-        except Exception as e:
-            return {
-                "healthy": False,
-                "status": "System load check error",
-                "error": str(e),
-            }
+            except asyncio.TimeoutError:
+                if attempt == 0:  # First attempt timed out, retry
+                    continue
+                return {
+                    "healthy": False,
+                    "status": "System load check timeout",
+                    "error": "Load check timed out after retry",
+                }
+            except Exception as e:
+                if attempt == 0:  # First attempt failed, retry
+                    await asyncio.sleep(0.1)
+                    continue
+                return {
+                    "healthy": False,
+                    "status": "System load check error",
+                    "error": str(e),
+                }
 
     async def _check_uam_state(self) -> Dict[str, Any]:
         """Check UAM state health."""
@@ -210,57 +241,126 @@ class HealthChecker:
             }
 
     async def _check_cloudflare_api(self) -> Dict[str, Any]:
-        """Check Cloudflare API health."""
+        """Check Cloudflare API health with timeout and retry logic."""
         if not self.cloudflare_client:
             return {
                 "healthy": False,
                 "status": "Cloudflare client not initialized",
             }
 
-        try:
-            CLOUDFLARE_API_REQUESTS.inc()
+        # Check circuit breaker
+        if self._circuit_open:
+            if time.time() - self._circuit_open_time < self._circuit_timeout:
+                return {
+                    "healthy": False,
+                    "status": "Cloudflare API circuit breaker open",
+                }
+            else:
+                # Reset circuit breaker
+                self._circuit_open = False
+                self._consecutive_failures = 0
 
-            async with self.cloudflare_client as client:
-                # Test connection
-                if not await client.test_connection():
-                    CLOUDFLARE_API_ERRORS.inc()
+        for attempt in range(2):  # Retry once
+            try:
+                CLOUDFLARE_API_REQUESTS.inc()
+
+                async with self.cloudflare_client as client:
+                    # Test connection with timeout
+                    if not await asyncio.wait_for(
+                        client.test_connection(), timeout=self._api_timeout
+                    ):
+                        CLOUDFLARE_API_ERRORS.inc()
+                        if attempt == 0:  # First attempt failed, retry
+                            await asyncio.sleep(0.1)
+                            continue
+                        self._handle_api_failure()
+                        return {
+                            "healthy": False,
+                            "status": "Cloudflare API connection failed",
+                        }
+
+                    # Get current security level with timeout
+                    security_level = await asyncio.wait_for(
+                        client.get_current_security_level(), timeout=self._api_timeout
+                    )
+
+                    # Success - reset failure counters
+                    self._consecutive_failures = 0
+                    self._last_success = time.time()
+
                     return {
-                        "healthy": False,
-                        "status": "Cloudflare API connection failed",
+                        "healthy": True,
+                        "status": "Cloudflare API healthy",
+                        "security_level": security_level,
                     }
 
-                # Get current security level
-                security_level = await client.get_current_security_level()
-
+            except asyncio.TimeoutError:
+                CLOUDFLARE_API_ERRORS.inc()
+                if attempt == 0:  # First attempt timed out, retry
+                    continue
+                self._handle_api_failure()
                 return {
-                    "healthy": True,
-                    "status": "Cloudflare API healthy",
-                    "security_level": security_level,
+                    "healthy": False,
+                    "status": "Cloudflare API timeout",
+                    "error": "API calls timed out after retry",
+                }
+            except Exception as e:
+                CLOUDFLARE_API_ERRORS.inc()
+                if attempt == 0:  # First attempt failed, retry
+                    await asyncio.sleep(0.1)
+                    continue
+                self._handle_api_failure()
+                return {
+                    "healthy": False,
+                    "status": "Cloudflare API error",
+                    "error": str(e),
                 }
 
-        except Exception as e:
-            CLOUDFLARE_API_ERRORS.inc()
-            return {
-                "healthy": False,
-                "status": "Cloudflare API check error",
-                "error": str(e),
-            }
+    def _handle_api_failure(self) -> None:
+        """Handle API failure and update circuit breaker state."""
+        self._consecutive_failures += 1
+
+        if self._consecutive_failures >= self._max_failures:
+            self._circuit_open = True
+            self._circuit_open_time = time.time()
+            self.logger.warning(
+                "Cloudflare API circuit breaker opened",
+                consecutive_failures=self._consecutive_failures,
+            )
 
     def _determine_overall_health(
         self, load_info: Dict, uam_info: Dict, cloudflare_info: Dict
     ) -> Dict[str, Any]:
-        """Determine overall health status."""
+        """Determine overall health status with graceful degradation."""
         checks = [load_info, uam_info, cloudflare_info]
         failed_checks = [check for check in checks if not check.get("healthy", True)]
 
-        if failed_checks:
-            failed_statuses = [
-                check.get("status", "Unknown") for check in failed_checks
-            ]
-            status = f"Health check failed: {', '.join(failed_statuses)}"
-            return {"healthy": False, "status": status}
+        # Graceful degradation: system can be healthy even if some components fail
+        # - Load check failure: critical (system may be overloaded)
+        # - UAM state failure: non-critical (state management issue)
+        # - Cloudflare API failure: critical for UAM functionality
+        #   (API required for UAM control)
 
-        return {"healthy": True, "status": "All health checks passed"}
+        critical_failures = []
+        non_critical_failures = []
+
+        for check in failed_checks:
+            status = check.get("status", "Unknown")
+            if "load" in status.lower() or "cloudflare" in status.lower():
+                critical_failures.append(status)
+            else:
+                non_critical_failures.append(status)
+
+        if critical_failures:
+            # Critical failures make the system unhealthy
+            status = f"Critical health check failed: {', '.join(critical_failures)}"
+            return {"healthy": False, "status": status}
+        elif non_critical_failures:
+            # Non-critical failures result in degraded but healthy status
+            status = f"Degraded: {', '.join(non_critical_failures)}"
+            return {"healthy": True, "status": status, "degraded": True}
+        else:
+            return {"healthy": True, "status": "All health checks passed"}
 
     def _update_metrics(
         self, load_info: Dict, uam_info: Dict, cloudflare_info: Dict
