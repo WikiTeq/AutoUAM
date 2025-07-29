@@ -212,6 +212,13 @@ class HealthChecker:
                     "error": str(e),
                 }
 
+        # This should never be reached, but mypy requires it
+        return {
+            "healthy": False,
+            "status": "System load check failed after retries",
+            "error": "Unexpected error in load check",
+        }
+
     async def _check_uam_state(self) -> Dict[str, Any]:
         """Check UAM state health."""
         try:
@@ -315,6 +322,13 @@ class HealthChecker:
                     "status": "Cloudflare API error",
                     "error": str(e),
                 }
+
+        # This should never be reached, but mypy requires it
+        return {
+            "healthy": False,
+            "status": "Cloudflare API check failed after retries",
+            "error": "Unexpected error in API check",
+        }
 
     def _handle_api_failure(self) -> None:
         """Handle API failure and update circuit breaker state."""

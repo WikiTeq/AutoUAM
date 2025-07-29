@@ -9,20 +9,15 @@ Automated Cloudflare Under Attack Mode management based on server load metrics.
 
 ## Overview
 
-AutoUAM is a modern, production-ready Python system for automatically managing Cloudflare's Under Attack Mode based on server load metrics. The system monitors your server's load average and automatically enables/disables Cloudflare's Under Attack Mode to protect against DDoS attacks and high-load situations.
+AutoUAM is a vibe-coded Python system for automatically managing Cloudflare's Under Attack Mode based on server load metrics. The system monitors your server's load average and automatically enables/disables Cloudflare's Under Attack Mode to protect against DDoS attacks and high-load situations.
 
 ## Features
 
 - **Automated UAM Management**: Enable UAM when load exceeds threshold, disable when normalized
-- **Intelligent Load Monitoring**: Support for both absolute and relative load thresholds
-- **Historical Baseline Analysis**: Learn normal load patterns and trigger based on deviations
+- **Intelligent Load Monitoring**: Support for both absolute and relative load thresholds based on deviations from historical baseline
 - **Configurable Thresholds**: User-defined upper and lower load limits with relative multipliers
 - **Time-based Controls**: Minimum UAM duration to prevent oscillation
 - **Multiple Deployment Options**: Python package, systemd service, container, or cloud function
-- **Comprehensive Logging**: Structured logging with multiple output formats
-- **Health Monitoring**: Built-in health checks and monitoring endpoints
-- **Security**: Secure credential management and API token handling
-- **Comprehensive Testing**: Unit, integration, and end-to-end tests with 65+ test cases
 
 ## Quick Start
 
@@ -33,9 +28,6 @@ AutoUAM is a modern, production-ready Python system for automatically managing C
 ```bash
 # Install the latest stable version
 pip install autouam
-
-# Or install with specific version
-pip install autouam==1.0.0a3
 ```
 
 #### From Source (Development)
@@ -243,7 +235,7 @@ health:
   port: int                 # Health server port
   endpoint: string          # Health endpoint
   metrics_endpoint: string  # Metrics endpoint
-
+```
 
 ## Load Monitoring: Absolute vs Relative Thresholds
 
@@ -468,7 +460,7 @@ AutoUAM uses structured logging with support for multiple formats and improved r
 - **WARNING**: Warning messages
 - **ERROR**: Error messages
 
-### Logging Improvements
+### Logging Features
 
 #### Handler Management
 - **Automatic Cleanup**: Removes existing handlers to prevent duplication
@@ -502,7 +494,7 @@ AutoUAM uses structured logging with support for multiple formats and improved r
 
 ## Development
 
-### Setup Development Environment
+### Set Up Development Environment
 
 ```bash
 git clone https://github.com/wikiteq/AutoUAM.git
@@ -527,14 +519,6 @@ pytest tests/test_monitor.py
 # Run integration tests
 pytest tests/test_integration.py --asyncio-mode=auto
 ```
-
-**Current Test Status**: ✅ **153/153 tests passing** (100% success rate)
-- **61 existing tests** - Configuration, monitoring, and core functionality
-- **18 baseline tests** - Dynamic threshold baseline functionality
-- **13 dynamic threshold tests** - Relative threshold configuration and integration
-- **18 logging tests** - Logging setup and configuration
-- **13 health server tests** - Health monitoring and metrics
-- **30 integration tests** - End-to-end functionality and state persistence
 
 For comprehensive testing information, see [TESTING.md](TESTING.md).
 
