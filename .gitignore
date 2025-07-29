@@ -48,7 +48,6 @@ Thumbs.db
 autouam.log
 autouam.pid
 config.yaml
-config.yml
 *.env
 
 # Terraform
