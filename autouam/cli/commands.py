@@ -70,7 +70,7 @@ def print_info(message: str) -> None:
     help="Output format",
 )
 @click.option("--quiet", "-q", is_flag=True, help="Suppress output")
-@click.option("--verbose", "-V", is_flag=True, help="Verbose output")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.pass_context
 def main(
     ctx: click.Context,
