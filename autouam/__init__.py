@@ -1,6 +1,6 @@
 """AutoUAM - Automated Cloudflare Under Attack Mode management."""
 
-__version__ = "1.0.0a1"
+__version__ = "1.0.0a3"
 __author__ = "Ike Hecht"
 __email__ = "contact@wikiteq.com"
 

@@ -35,7 +35,7 @@ AutoUAM is a modern, production-ready Python system for automatically managing C
 pip install autouam
 
 # Or install with specific version
-pip install autouam==1.0.0a1
+pip install autouam==1.0.0a3
 ```
 
 #### From Source (Development)
