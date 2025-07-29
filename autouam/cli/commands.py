@@ -141,7 +141,7 @@ def daemon(ctx: click.Context, config: str) -> None:
             sys.exit(1)
 
         # Create and run UAM manager
-        async def run_daemon():
+        async def run_daemon() -> None:
             uam_manager = UAMManager(settings)
 
             # Start health server if enabled
@@ -186,7 +186,7 @@ def check(ctx: click.Context, config: Optional[str]) -> None:
 
         setup_logging(settings.logging)
 
-        async def run_check():
+        async def run_check() -> None:
             uam_manager = UAMManager(settings)
             if not await uam_manager.initialize():
                 print_error("Failed to initialize UAM manager")
@@ -224,7 +224,7 @@ def enable(ctx: click.Context, config: Optional[str]) -> None:
 
         setup_logging(settings.logging)
 
-        async def run_enable():
+        async def run_enable() -> None:
             uam_manager = UAMManager(settings)
             if not await uam_manager.initialize():
                 print_error("Failed to initialize UAM manager")
@@ -261,7 +261,7 @@ def disable(ctx: click.Context, config: Optional[str]) -> None:
 
         setup_logging(settings.logging)
 
-        async def run_disable():
+        async def run_disable() -> None:
             uam_manager = UAMManager(settings)
             if not await uam_manager.initialize():
                 print_error("Failed to initialize UAM manager")
@@ -298,7 +298,7 @@ def status(ctx: click.Context, config: Optional[str]) -> None:
 
         setup_logging(settings.logging)
 
-        async def run_status():
+        async def run_status() -> None:
             uam_manager = UAMManager(settings)
             if not await uam_manager.initialize():
                 print_error("Failed to initialize UAM manager")
@@ -432,7 +432,7 @@ def health_check(ctx: click.Context, config: Optional[str]) -> None:
 
         setup_logging(settings.logging)
 
-        async def run_health_check():
+        async def run_health_check() -> None:
             health_checker = HealthChecker(settings)
             await health_checker.initialize()
 
@@ -475,7 +475,7 @@ def metrics(ctx: click.Context, config: Optional[str]) -> None:
 
         setup_logging(settings.logging)
 
-        async def run_metrics():
+        async def run_metrics() -> None:
             health_checker = HealthChecker(settings)
             await health_checker.initialize()
 

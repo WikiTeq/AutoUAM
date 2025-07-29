@@ -7,7 +7,7 @@ from ..config.settings import Settings
 from ..logging.setup import get_logger
 from .cloudflare import CloudflareClient, CloudflareError
 from .monitor import LoadMonitor
-from .state import StateManager
+from .state import StateManager, UAMState
 
 
 class UAMManager:
@@ -153,7 +153,9 @@ class UAMManager:
         except Exception as e:
             self.logger.error("Error in monitoring cycle", error=str(e))
 
-    async def _evaluate_and_act(self, load_average: float, current_state) -> None:
+    async def _evaluate_and_act(
+        self, load_average: float, current_state: "UAMState"
+    ) -> None:
         """Evaluate load and take appropriate action."""
         thresholds = self.config.monitoring.load_thresholds
         minimum_duration = self.config.monitoring.minimum_uam_duration
