@@ -546,6 +546,40 @@ mypy autouam/
 pre-commit install
 ```
 
+### Releasing to PyPI
+
+**Important**: AutoUAM uses a specific twine version (3.8.0) to ensure compatibility with PyPI metadata validation.
+
+#### Using the Release Script (Recommended)
+
+```bash
+# Make sure you're on the master branch and all changes are committed
+git checkout master
+git pull origin master
+
+# Run the release script
+./scripts/release.sh
+```
+
+#### Manual Release Process
+
+```bash
+# 1. Install the correct twine version
+python -m pip install "twine==3.8.0"
+
+# 2. Clean and build
+rm -rf dist/ build/ *.egg-info/
+python -m build
+
+# 3. Check the package
+twine check dist/*
+
+# 4. Upload to PyPI
+twine upload dist/* --skip-existing
+```
+
+**Note**: The pinned twine version (3.8.0) is included in the dev dependencies to ensure consistent releases.
+
 ## Contributing
 
 1. Fork the repository
