@@ -104,7 +104,7 @@ class HealthServer:
         return web.json_response(
             {
                 "service": "AutoUAM Health Server",
-                "version": "1.0.0a3",
+                "version": "1.0.0a4",
                 "endpoints": {
                     "health": self.config.health.endpoint,
                     "metrics": self.config.health.metrics_endpoint,

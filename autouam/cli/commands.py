@@ -62,7 +62,7 @@ class CLIContext:
 
 
 @click.group()
-@click.version_option(version="1.0.0a3", prog_name="autouam")
+@click.version_option(version="1.0.0a4", prog_name="autouam")
 @click.option(
     "--config", "-c", type=click.Path(exists=True), help="Configuration file path"
 )
