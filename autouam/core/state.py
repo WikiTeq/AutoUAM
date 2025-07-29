@@ -87,13 +87,41 @@ class StateManager:
                 with open(state_path, "r") as f:
                     data = json.load(f)
 
+                # Validate the loaded data
+                if not isinstance(data, dict):
+                    raise ValueError("State file contains invalid data format")
+
                 self._state = UAMState.from_dict(data)
                 self.logger.debug("State loaded from file", state_file=self.state_file)
 
-            except (IOError, json.JSONDecodeError) as e:
+            except (IOError, PermissionError) as e:
                 self.logger.warning(
-                    "Failed to load state file, using initial state",
+                    "Failed to read state file due to I/O error, using initial state",
                     error=str(e),
+                    state_file=self.state_file,
+                )
+                self._state = self.get_initial_state()
+            except json.JSONDecodeError as e:
+                self.logger.warning(
+                    "Failed to parse state file (corrupted), using initial state",
+                    error=str(e),
+                    state_file=self.state_file,
+                )
+                # Try to backup corrupted file
+                try:
+                    backup_path = state_path.with_suffix(".corrupted")
+                    state_path.rename(backup_path)
+                    self.logger.info(
+                        "Corrupted state file backed up", backup_file=str(backup_path)
+                    )
+                except OSError:
+                    pass
+                self._state = self.get_initial_state()
+            except (ValueError, TypeError) as e:
+                self.logger.warning(
+                    "State file contains invalid data, using initial state",
+                    error=str(e),
+                    state_file=self.state_file,
                 )
                 self._state = self.get_initial_state()
         else:
@@ -110,12 +138,35 @@ class StateManager:
             state_path = Path(self.state_file)
 
             # Ensure directory exists
-            state_path.parent.mkdir(parents=True, exist_ok=True)
+            try:
+                state_path.parent.mkdir(parents=True, exist_ok=True)
+            except PermissionError as e:
+                self.logger.error(
+                    "Permission denied creating state directory",
+                    error=str(e),
+                    directory=str(state_path.parent),
+                )
+                raise
 
-            with open(state_path, "w") as f:
-                json.dump(state.to_dict(), f, indent=2)
+            # Create a temporary file first to avoid corruption
+            temp_path = state_path.with_suffix(".tmp")
+            try:
+                with open(temp_path, "w") as f:
+                    json.dump(state.to_dict(), f, indent=2)
 
-            self.logger.debug("State saved to file", state_file=self.state_file)
+                # Atomic move to final location
+                temp_path.replace(state_path)
+
+                self.logger.debug("State saved to file", state_file=self.state_file)
+
+            except (IOError, PermissionError) as e:
+                # Clean up temp file if it exists
+                if temp_path.exists():
+                    try:
+                        temp_path.unlink()
+                    except OSError:
+                        pass
+                raise
 
         except (IOError, PermissionError) as e:
             self.logger.warning(
@@ -123,6 +174,7 @@ class StateManager:
                 error=str(e),
                 state_file=self.state_file,
             )
+            # Don't raise - allow operation to continue with in-memory state
 
     def update_state(
         self,

@@ -97,10 +97,33 @@ class LoadMonitor:
 
     def _validate_platform(self) -> None:
         """Validate that we're running on a supported platform."""
-        if not os.path.exists("/proc/loadavg"):
-            raise RuntimeError("Load monitoring requires Linux with /proc/loadavg")
+        import platform
 
-        self.logger.info("Load monitor initialized for Linux platform")
+        system = platform.system().lower()
+
+        if system == "linux":
+            if not os.path.exists("/proc/loadavg"):
+                raise RuntimeError(
+                    "Load monitoring requires Linux with /proc/loadavg. "
+                    "This may indicate a containerized environment or non-standard Linux distribution."
+                )
+            self.logger.info("Load monitor initialized for Linux platform")
+        elif system == "darwin":
+            # macOS support could be added in the future
+            raise RuntimeError(
+                f"Load monitoring is not yet supported on {system}. "
+                "Currently only Linux with /proc/loadavg is supported."
+            )
+        elif system == "windows":
+            raise RuntimeError(
+                f"Load monitoring is not supported on {system}. "
+                "Currently only Linux with /proc/loadavg is supported."
+            )
+        else:
+            raise RuntimeError(
+                f"Load monitoring is not supported on {system}. "
+                "Currently only Linux with /proc/loadavg is supported."
+            )
 
     def update_baseline(self, hours: int = 24) -> None:
         """Update the load baseline."""
