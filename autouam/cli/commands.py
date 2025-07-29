@@ -48,6 +48,19 @@ def print_info(message: str) -> None:
     console.print(f"[blue]ℹ {message}[/blue]")
 
 
+class CLIContext:
+    """CLI context object to hold shared state."""
+
+    def __init__(self, settings: Optional[Settings] = None, **kwargs):
+        self.settings = settings
+        self.config_path = kwargs.get("config_path")
+        self.log_level = kwargs.get("log_level", "INFO")
+        self.dry_run = kwargs.get("dry_run", False)
+        self.format = kwargs.get("format", "text")
+        self.quiet = kwargs.get("quiet", False)
+        self.verbose = kwargs.get("verbose", False)
+
+
 @click.group()
 @click.version_option(version="1.0.0a3", prog_name="autouam")
 @click.option(
@@ -71,9 +84,9 @@ def print_info(message: str) -> None:
 )
 @click.option("--quiet", "-q", is_flag=True, help="Suppress output")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.pass_context
+@click.pass_obj
 def main(
-    ctx: click.Context,
+    obj: CLIContext,
     config: Optional[str],
     log_level: str,
     dry_run: bool,
@@ -82,19 +95,22 @@ def main(
     verbose: bool,
 ) -> None:
     """AutoUAM - Automated Cloudflare Under Attack Mode management."""
-    ctx.ensure_object(dict)
-    ctx.obj["config_path"] = config
-    ctx.obj["log_level"] = log_level
-    ctx.obj["dry_run"] = dry_run
-    ctx.obj["format"] = format
-    ctx.obj["quiet"] = quiet
-    ctx.obj["verbose"] = verbose
+    # Initialize CLI context
+    if obj is None:
+        obj = CLIContext()
 
-    # Setup logging
+    obj.config_path = config
+    obj.log_level = log_level
+    obj.dry_run = dry_run
+    obj.format = format
+    obj.quiet = quiet
+    obj.verbose = verbose
+
+    # Setup logging and load settings if config provided
     if config:
         try:
-            settings = Settings.from_file(Path(config))
-            setup_logging(settings.logging)
+            obj.settings = Settings.from_file(Path(config))
+            setup_logging(obj.settings.logging)
         except Exception as e:
             print_error(f"Failed to load configuration: {e}")
             sys.exit(1)
@@ -114,27 +130,19 @@ def main(
 
 
 @main.command()
-@click.option(
-    "--config", "-c", type=click.Path(), required=True, help="Configuration file path"
-)
-@click.pass_context
-def daemon(ctx: click.Context, config: str) -> None:
+@click.pass_obj
+def daemon(obj: CLIContext) -> None:
     """Run AutoUAM as a daemon."""
-    config_path = Path(config)
-
-    if not config_path.exists():
-        print_error(f"Configuration file not found: {config}")
+    if not obj.settings:
+        print_error("Configuration file is required for daemon mode")
         sys.exit(1)
 
     try:
-        settings = Settings.from_file(config_path)
-        setup_logging(settings.logging)
-
         logger = get_logger(__name__)
         logger.info("Starting AutoUAM daemon")
 
         # Validate configuration
-        errors = validate_config(settings)
+        errors = validate_config(obj.settings)
         if errors:
             for error in errors:
                 print_error(error)
@@ -142,14 +150,14 @@ def daemon(ctx: click.Context, config: str) -> None:
 
         # Create and run UAM manager
         async def run_daemon() -> None:
-            uam_manager = UAMManager(settings)
+            uam_manager = UAMManager(obj.settings)
 
             # Start health server if enabled
             health_server = None
-            if settings.health.enabled:
-                health_checker = HealthChecker(settings)
+            if obj.settings.health.enabled:
+                health_checker = HealthChecker(obj.settings)
                 await health_checker.initialize()
-                health_server = HealthServer(settings, health_checker)
+                health_server = HealthServer(obj.settings, health_checker)
                 await health_server.start()
                 logger.info("Health server started")
 
@@ -171,19 +179,11 @@ def daemon(ctx: click.Context, config: str) -> None:
 
 
 @main.command()
-@click.option("--config", "-c", type=click.Path(), help="Configuration file path")
-@click.pass_context
-def check(ctx: click.Context, config: Optional[str]) -> None:
+@click.pass_obj
+def check(obj: CLIContext) -> None:
     """Perform a one-time check."""
-    config_path = Path(config) if config else None
-
     try:
-        if config_path and config_path.exists():
-            settings = Settings.from_file(config_path)
-        else:
-            # Use environment variables
-            settings = Settings()  # type: ignore[call-arg]
-
+        settings = obj.settings or Settings()  # type: ignore[call-arg]
         setup_logging(settings.logging)
 
         async def run_check() -> None:
@@ -195,9 +195,9 @@ def check(ctx: click.Context, config: Optional[str]) -> None:
 
                 result = await uam_manager.check_once()
 
-                if ctx.obj["format"] == "json":
+                if obj.format == "json":
                     console.print(json.dumps(result, indent=2))
-                elif ctx.obj["format"] == "yaml":
+                elif obj.format == "yaml":
                     console.print(yaml.dump(result, default_flow_style=False))
                 else:
                     display_status(result)
@@ -212,23 +212,18 @@ def check(ctx: click.Context, config: Optional[str]) -> None:
 
 
 @main.command()
-@click.option("--config", "-c", type=click.Path(), help="Configuration file path")
-@click.pass_context
-def enable(ctx: click.Context, config: Optional[str]) -> None:
+@click.pass_obj
+def enable(obj: CLIContext) -> None:
     """Manually enable Under Attack Mode."""
-    config_path = Path(config) if config else None
+    if not obj.settings:
+        print_error("Configuration file is required for this command")
+        sys.exit(1)
 
     try:
-        if config_path and config_path.exists():
-            settings = Settings.from_file(config_path)
-        else:
-            print_error("Configuration file is required for this command")
-            sys.exit(1)
-
-        setup_logging(settings.logging)
+        setup_logging(obj.settings.logging)
 
         async def run_enable() -> None:
-            uam_manager = UAMManager(settings)
+            uam_manager = UAMManager(obj.settings)
             try:
                 if not await uam_manager.initialize():
                     print_error("Failed to initialize UAM manager")
@@ -252,23 +247,18 @@ def enable(ctx: click.Context, config: Optional[str]) -> None:
 
 
 @main.command()
-@click.option("--config", "-c", type=click.Path(), help="Configuration file path")
-@click.pass_context
-def disable(ctx: click.Context, config: Optional[str]) -> None:
+@click.pass_obj
+def disable(obj: CLIContext) -> None:
     """Manually disable Under Attack Mode."""
-    config_path = Path(config) if config else None
+    if not obj.settings:
+        print_error("Configuration file is required for this command")
+        sys.exit(1)
 
     try:
-        if config_path and config_path.exists():
-            settings = Settings.from_file(config_path)
-        else:
-            print_error("Configuration file is required for this command")
-            sys.exit(1)
-
-        setup_logging(settings.logging)
+        setup_logging(obj.settings.logging)
 
         async def run_disable() -> None:
-            uam_manager = UAMManager(settings)
+            uam_manager = UAMManager(obj.settings)
             try:
                 if not await uam_manager.initialize():
                     print_error("Failed to initialize UAM manager")
@@ -292,23 +282,18 @@ def disable(ctx: click.Context, config: Optional[str]) -> None:
 
 
 @main.command()
-@click.option("--config", "-c", type=click.Path(), help="Configuration file path")
-@click.pass_context
-def status(ctx: click.Context, config: Optional[str]) -> None:
+@click.pass_obj
+def status(obj: CLIContext) -> None:
     """Show current status."""
-    config_path = Path(config) if config else None
+    if not obj.settings:
+        print_error("Configuration file is required for this command")
+        sys.exit(1)
 
     try:
-        if config_path and config_path.exists():
-            settings = Settings.from_file(config_path)
-        else:
-            print_error("Configuration file is required for this command")
-            sys.exit(1)
-
-        setup_logging(settings.logging)
+        setup_logging(obj.settings.logging)
 
         async def run_status() -> None:
-            uam_manager = UAMManager(settings)
+            uam_manager = UAMManager(obj.settings)
             try:
                 if not await uam_manager.initialize():
                     print_error("Failed to initialize UAM manager")
@@ -316,9 +301,9 @@ def status(ctx: click.Context, config: Optional[str]) -> None:
 
                 result = uam_manager.get_status()
 
-                if ctx.obj["format"] == "json":
+                if obj.format == "json":
                     console.print(json.dumps(result, indent=2))
-                elif ctx.obj["format"] == "yaml":
+                elif obj.format == "yaml":
                     console.print(yaml.dump(result, default_flow_style=False))
                 else:
                     display_status(result)
@@ -340,8 +325,8 @@ def config() -> None:
 
 @config.command()
 @click.argument("config_path", type=click.Path())
-@click.pass_context
-def validate(ctx: click.Context, config_path: str) -> None:
+@click.pass_obj
+def validate(obj: CLIContext, config_path: str) -> None:
     """Validate configuration file."""
     path = Path(config_path)
 
@@ -362,8 +347,8 @@ def validate(ctx: click.Context, config_path: str) -> None:
 
 @config.command()
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-@click.pass_context
-def generate(ctx: click.Context, output: Optional[str]) -> None:
+@click.pass_obj
+def generate(obj: CLIContext, output: Optional[str]) -> None:
     """Generate sample configuration."""
     sample_config = generate_sample_config()
 
@@ -376,9 +361,9 @@ def generate(ctx: click.Context, output: Optional[str]) -> None:
 
         print_success(f"Sample configuration written to {output}")
     else:
-        if ctx.obj["format"] == "json":
+        if obj.format == "json":
             console.print(json.dumps(sample_config, indent=2))
-        elif ctx.obj["format"] == "yaml":
+        elif obj.format == "yaml":
             console.print(yaml.dump(sample_config, default_flow_style=False))
         else:
             console.print(
@@ -391,22 +376,19 @@ def generate(ctx: click.Context, output: Optional[str]) -> None:
 
 
 @config.command()
-@click.option("--config", "-c", type=click.Path(), help="Configuration file path")
-@click.pass_context
-def show(ctx: click.Context, config: Optional[str]) -> None:
+@click.pass_obj
+def show(obj: CLIContext) -> None:
     """Show current configuration."""
+    if not obj.settings:
+        print_error("Configuration file is required for this command")
+        sys.exit(1)
+
     try:
-        if config:
-            settings = Settings.from_file(Path(config))
-        else:
-            print_error("Configuration file is required for this command")
-            sys.exit(1)
+        config_dict = obj.settings.to_dict()
 
-        config_dict = settings.to_dict()
-
-        if ctx.obj["format"] == "json":
+        if obj.format == "json":
             console.print(json.dumps(config_dict, indent=2))
-        elif ctx.obj["format"] == "yaml":
+        elif obj.format == "yaml":
             console.print(yaml.dump(config_dict, default_flow_style=False))
         else:
             console.print(
@@ -429,23 +411,18 @@ def health() -> None:
 
 
 @health.command()
-@click.option("--config", "-c", type=click.Path(), help="Configuration file path")
-@click.pass_context
-def health_check(ctx: click.Context, config: Optional[str]) -> None:
+@click.pass_obj
+def health_check(obj: CLIContext) -> None:
     """Perform health check."""
-    config_path = Path(config) if config else None
+    if not obj.settings:
+        print_error("Configuration file is required for this command")
+        sys.exit(1)
 
     try:
-        if config_path and config_path.exists():
-            settings = Settings.from_file(config_path)
-        else:
-            print_error("Configuration file is required for this command")
-            sys.exit(1)
-
-        setup_logging(settings.logging)
+        setup_logging(obj.settings.logging)
 
         async def run_health_check() -> None:
-            health_checker = HealthChecker(settings)
+            health_checker = HealthChecker(obj.settings)
             try:
                 await health_checker.initialize()
 
@@ -458,9 +435,9 @@ def health_check(ctx: click.Context, config: Optional[str]) -> None:
                     result = await health_checker.check_health()
                     progress.update(task, completed=True)
 
-                if ctx.obj["format"] == "json":
+                if obj.format == "json":
                     console.print(json.dumps(result, indent=2))
-                elif ctx.obj["format"] == "yaml":
+                elif obj.format == "yaml":
                     console.print(yaml.dump(result, default_flow_style=False))
                 else:
                     display_health_result(result)
@@ -477,23 +454,18 @@ def health_check(ctx: click.Context, config: Optional[str]) -> None:
 
 
 @health.command()
-@click.option("--config", "-c", type=click.Path(), help="Configuration file path")
-@click.pass_context
-def metrics(ctx: click.Context, config: Optional[str]) -> None:
+@click.pass_obj
+def metrics(obj: CLIContext) -> None:
     """Show metrics."""
-    config_path = Path(config) if config else None
+    if not obj.settings:
+        print_error("Configuration file is required for this command")
+        sys.exit(1)
 
     try:
-        if config_path and config_path.exists():
-            settings = Settings.from_file(config_path)
-        else:
-            print_error("Configuration file is required for this command")
-            sys.exit(1)
-
-        setup_logging(settings.logging)
+        setup_logging(obj.settings.logging)
 
         async def run_metrics() -> None:
-            health_checker = HealthChecker(settings)
+            health_checker = HealthChecker(obj.settings)
             try:
                 await health_checker.initialize()
 
