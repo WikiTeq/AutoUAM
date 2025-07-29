@@ -28,7 +28,39 @@ class UAMState:
 
     @classmethod
     def from_dict(cls, data: dict) -> "UAMState":
-        """Create from dictionary."""
+        """Create from dictionary with validation."""
+        # Validate required fields
+        required_fields = [
+            "is_enabled",
+            "last_check",
+            "load_average",
+            "threshold_used",
+            "reason",
+        ]
+        for field in required_fields:
+            if field not in data:
+                raise ValueError(f"Missing required field: {field}")
+
+        # Validate data types
+        if not isinstance(data["is_enabled"], bool):
+            raise ValueError("is_enabled must be a boolean")
+        if not isinstance(data["last_check"], (int, float)):
+            raise ValueError("last_check must be a number")
+        if not isinstance(data["load_average"], (int, float)):
+            raise ValueError("load_average must be a number")
+        if not isinstance(data["threshold_used"], (int, float)):
+            raise ValueError("threshold_used must be a number")
+        if not isinstance(data["reason"], str):
+            raise ValueError("reason must be a string")
+
+        # Validate optional fields
+        if "enabled_at" in data and data["enabled_at"] is not None:
+            if not isinstance(data["enabled_at"], (int, float)):
+                raise ValueError("enabled_at must be a number or None")
+        if "disabled_at" in data and data["disabled_at"] is not None:
+            if not isinstance(data["disabled_at"], (int, float)):
+                raise ValueError("disabled_at must be a number or None")
+
         return cls(**data)
 
 
@@ -45,7 +77,41 @@ class StateManager:
             or "/var/lib/autouam/state.json"
         )
         self._state: Optional[UAMState] = None
+
+        # Validate and sanitize the state file path
+        self._validate_state_file_path()
         self._ensure_state_directory()
+
+    def _validate_state_file_path(self) -> None:
+        """Validate and sanitize the state file path for security."""
+        try:
+            state_path = Path(self.state_file).resolve()
+
+            # Prevent path traversal attacks
+            if ".." in str(state_path):
+                raise ValueError("Path traversal not allowed in state file path")
+
+            # Ensure path is within allowed directories
+            allowed_dirs = ["/var/lib/autouam", "/tmp", "/var/tmp"]
+            if not any(
+                str(state_path).startswith(allowed_dir) for allowed_dir in allowed_dirs
+            ):
+                self.logger.warning(
+                    "State file path outside allowed directories",
+                    path=str(state_path),
+                    allowed_dirs=allowed_dirs,
+                )
+
+            # Update to resolved path
+            self.state_file = str(state_path)
+
+        except Exception as e:
+            self.logger.error(
+                "Invalid state file path",
+                error=str(e),
+                path=self.state_file,
+            )
+            raise
 
     def _ensure_state_directory(self) -> None:
         """Ensure state directory exists."""
@@ -55,6 +121,8 @@ class StateManager:
         if not state_dir.exists():
             try:
                 state_dir.mkdir(parents=True, exist_ok=True)
+                # Set secure permissions (owner read/write only)
+                state_dir.chmod(0o700)
                 self.logger.debug("Created state directory", path=str(state_dir))
             except PermissionError as e:
                 self.logger.warning(
@@ -153,6 +221,9 @@ class StateManager:
             try:
                 with open(temp_path, "w") as f:
                     json.dump(state.to_dict(), f, indent=2)
+
+                # Set secure file permissions (owner read/write only)
+                temp_path.chmod(0o600)
 
                 # Atomic move to final location
                 temp_path.replace(state_path)
