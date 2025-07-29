@@ -188,18 +188,21 @@ def check(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_check() -> None:
             uam_manager = UAMManager(settings)
-            if not await uam_manager.initialize():
-                print_error("Failed to initialize UAM manager")
-                sys.exit(1)
+            try:
+                if not await uam_manager.initialize():
+                    print_error("Failed to initialize UAM manager")
+                    sys.exit(1)
 
-            result = await uam_manager.check_once()
+                result = await uam_manager.check_once()
 
-            if ctx.obj["format"] == "json":
-                console.print(json.dumps(result, indent=2))
-            elif ctx.obj["format"] == "yaml":
-                console.print(yaml.dump(result, default_flow_style=False))
-            else:
-                display_status(result)
+                if ctx.obj["format"] == "json":
+                    console.print(json.dumps(result, indent=2))
+                elif ctx.obj["format"] == "yaml":
+                    console.print(yaml.dump(result, default_flow_style=False))
+                else:
+                    display_status(result)
+            finally:
+                uam_manager.stop()
 
         asyncio.run(run_check())
 
@@ -226,17 +229,20 @@ def enable(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_enable() -> None:
             uam_manager = UAMManager(settings)
-            if not await uam_manager.initialize():
-                print_error("Failed to initialize UAM manager")
-                sys.exit(1)
+            try:
+                if not await uam_manager.initialize():
+                    print_error("Failed to initialize UAM manager")
+                    sys.exit(1)
 
-            success = await uam_manager.enable_uam_manual()
+                success = await uam_manager.enable_uam_manual()
 
-            if success:
-                print_success("Under Attack Mode enabled")
-            else:
-                print_error("Failed to enable Under Attack Mode")
-                sys.exit(1)
+                if success:
+                    print_success("Under Attack Mode enabled")
+                else:
+                    print_error("Failed to enable Under Attack Mode")
+                    sys.exit(1)
+            finally:
+                uam_manager.stop()
 
         asyncio.run(run_enable())
 
@@ -263,17 +269,20 @@ def disable(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_disable() -> None:
             uam_manager = UAMManager(settings)
-            if not await uam_manager.initialize():
-                print_error("Failed to initialize UAM manager")
-                sys.exit(1)
+            try:
+                if not await uam_manager.initialize():
+                    print_error("Failed to initialize UAM manager")
+                    sys.exit(1)
 
-            success = await uam_manager.disable_uam_manual()
+                success = await uam_manager.disable_uam_manual()
 
-            if success:
-                print_success("Under Attack Mode disabled")
-            else:
-                print_error("Failed to disable Under Attack Mode")
-                sys.exit(1)
+                if success:
+                    print_success("Under Attack Mode disabled")
+                else:
+                    print_error("Failed to disable Under Attack Mode")
+                    sys.exit(1)
+            finally:
+                uam_manager.stop()
 
         asyncio.run(run_disable())
 
@@ -300,18 +309,21 @@ def status(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_status() -> None:
             uam_manager = UAMManager(settings)
-            if not await uam_manager.initialize():
-                print_error("Failed to initialize UAM manager")
-                sys.exit(1)
+            try:
+                if not await uam_manager.initialize():
+                    print_error("Failed to initialize UAM manager")
+                    sys.exit(1)
 
-            result = uam_manager.get_status()
+                result = uam_manager.get_status()
 
-            if ctx.obj["format"] == "json":
-                console.print(json.dumps(result, indent=2))
-            elif ctx.obj["format"] == "yaml":
-                console.print(yaml.dump(result, default_flow_style=False))
-            else:
-                display_status(result)
+                if ctx.obj["format"] == "json":
+                    console.print(json.dumps(result, indent=2))
+                elif ctx.obj["format"] == "yaml":
+                    console.print(yaml.dump(result, default_flow_style=False))
+                else:
+                    display_status(result)
+            finally:
+                uam_manager.stop()
 
         asyncio.run(run_status())
 
@@ -434,23 +446,27 @@ def health_check(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_health_check() -> None:
             health_checker = HealthChecker(settings)
-            await health_checker.initialize()
+            try:
+                await health_checker.initialize()
 
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console,
-            ) as progress:
-                task = progress.add_task("Performing health check...", total=None)
-                result = await health_checker.check_health()
-                progress.update(task, completed=True)
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                ) as progress:
+                    task = progress.add_task("Performing health check...", total=None)
+                    result = await health_checker.check_health()
+                    progress.update(task, completed=True)
 
-            if ctx.obj["format"] == "json":
-                console.print(json.dumps(result, indent=2))
-            elif ctx.obj["format"] == "yaml":
-                console.print(yaml.dump(result, default_flow_style=False))
-            else:
-                display_health_result(result)
+                if ctx.obj["format"] == "json":
+                    console.print(json.dumps(result, indent=2))
+                elif ctx.obj["format"] == "yaml":
+                    console.print(yaml.dump(result, default_flow_style=False))
+                else:
+                    display_health_result(result)
+            finally:
+                # Health checker doesn't have explicit cleanup, but ensure any resources are released
+                pass
 
         asyncio.run(run_health_check())
 
@@ -477,10 +493,14 @@ def metrics(ctx: click.Context, config: Optional[str]) -> None:
 
         async def run_metrics() -> None:
             health_checker = HealthChecker(settings)
-            await health_checker.initialize()
+            try:
+                await health_checker.initialize()
 
-            metrics_data = health_checker.get_metrics()
-            console.print(metrics_data)
+                metrics_data = health_checker.get_metrics()
+                console.print(metrics_data)
+            finally:
+                # Health checker doesn't have explicit cleanup, but ensure any resources are released
+                pass
 
         asyncio.run(run_metrics())
 
