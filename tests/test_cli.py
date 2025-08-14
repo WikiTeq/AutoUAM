@@ -97,7 +97,7 @@ class TestCLICommands:
         )
         mock_uam_manager_class.return_value = mock_manager
 
-        result = cli_runner.invoke(main, ["check", "--config", str(temp_config_file)])
+        result = cli_runner.invoke(main, ["--config", str(temp_config_file), "check"])
         assert result.exit_code == 0
         assert "Load Average" in result.output
 
@@ -110,7 +110,7 @@ class TestCLICommands:
         mock_manager.enable_uam_manual = AsyncMock(return_value=True)
         mock_uam_manager_class.return_value = mock_manager
 
-        result = cli_runner.invoke(main, ["enable", "--config", str(temp_config_file)])
+        result = cli_runner.invoke(main, ["--config", str(temp_config_file), "enable"])
         assert result.exit_code == 0
         assert "enabled" in result.output.lower()
 
@@ -125,7 +125,7 @@ class TestCLICommands:
         mock_manager.disable_uam_manual = AsyncMock(return_value=True)
         mock_uam_manager_class.return_value = mock_manager
 
-        result = cli_runner.invoke(main, ["disable", "--config", str(temp_config_file)])
+        result = cli_runner.invoke(main, ["--config", str(temp_config_file), "disable"])
         assert result.exit_code == 0
         assert "disabled" in result.output.lower()
 
@@ -143,7 +143,7 @@ class TestCLICommands:
         with patch("signal.signal"):
             result = cli_runner.invoke(
                 main,
-                ["monitor", "--config", str(temp_config_file)],
+                ["--config", str(temp_config_file), "monitor"],
                 catch_exceptions=False,
             )
             # The monitor command runs indefinitely, so we expect it to not exit
@@ -153,7 +153,7 @@ class TestCLICommands:
 
     def test_invalid_config_file(self, cli_runner):
         """Test command with invalid config file."""
-        result = cli_runner.invoke(main, ["check", "--config", "nonexistent.yaml"])
+        result = cli_runner.invoke(main, ["--config", "nonexistent.yaml", "check"])
         assert result.exit_code != 0
         assert "error" in result.output.lower()
 
@@ -171,7 +171,7 @@ class TestCLICommands:
         # Mock UAMManager to raise an exception
         mock_uam_manager_class.side_effect = Exception("Initialization failed")
 
-        result = cli_runner.invoke(main, ["check", "--config", str(temp_config_file)])
+        result = cli_runner.invoke(main, ["--config", str(temp_config_file), "check"])
         assert result.exit_code != 0
         assert "error" in result.output.lower()
 
@@ -185,7 +185,7 @@ class TestCLICommands:
         mock_manager.initialize = AsyncMock(return_value=False)
         mock_uam_manager_class.return_value = mock_manager
 
-        result = cli_runner.invoke(main, ["check", "--config", str(temp_config_file)])
+        result = cli_runner.invoke(main, ["--config", str(temp_config_file), "check"])
         assert result.exit_code != 0
         assert "Failed to initialize UAM manager" in result.output
 
@@ -225,7 +225,7 @@ class TestCLICommands:
             mock_uam_manager_class.return_value = mock_manager
 
             result = cli_runner.invoke(
-                main, ["--verbose", "check", "--config", str(temp_config_file)]
+                main, ["--verbose", "--config", str(temp_config_file), "check"]
             )
             assert result.exit_code == 0
             # Verbose output should contain more detailed information

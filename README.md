@@ -140,7 +140,7 @@ autouam daemon --config config.yaml
 #### One-time Check
 
 ```bash
-autouam check --config config.yaml
+autouam --config config.yaml check
 ```
 
 #### Manual Control
@@ -163,7 +163,7 @@ autouam status --config config.yaml
 
 ```bash
 # Perform health check
-autouam health check --config config.yaml
+autouam --config config.yaml health check
 
 # View metrics
 autouam metrics show --config config.yaml
