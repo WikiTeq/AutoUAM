@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autouam"
-version = "1.0.0a6"
+dynamic = ["version"]
 description = "Automated Cloudflare Under Attack Mode management based on server load metrics"
 readme = "README.md"
 authors = [
@@ -150,5 +150,8 @@ exclude_lines = [
     "if 0:",
     "if __name__ == .__main__.:",
     "class .*\\bProtocol\\):",
-    "@(abc\\.)?abstractmethod",
-]
+       "@(abc\\.)?abstractmethod",
+ ]
+
+[tool.setuptools.dynamic]
+version = { file = "VERSION" }
