@@ -161,7 +161,7 @@ class TestCLICommands:
         """Test command without config file."""
         result = cli_runner.invoke(main, ["check"])
         assert result.exit_code != 0
-        assert "cloudflare" in result.output.lower()
+        assert "configuration file is required" in result.output.lower()
 
     @patch("autouam.cli.commands.UAMManager")
     def test_uam_manager_initialization_error(
