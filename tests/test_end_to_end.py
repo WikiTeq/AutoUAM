@@ -28,8 +28,20 @@ class TestEndToEnd:
     @pytest.fixture
     async def end_to_end_setup(self):
         """Set up the end-to-end test environment."""
+        # Find an available port for the mock server
+        import socket
+
+        def find_free_port():
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(("", 0))
+                s.listen(1)
+                port = s.getsockname()[1]
+            return port
+
+        port = find_free_port()
+
         # Start mock Cloudflare server
-        mock_server = MockCloudflareServer(port=8081)
+        mock_server = MockCloudflareServer(port=port)
         await mock_server.start()
 
         # Create test configuration
@@ -38,7 +50,7 @@ class TestEndToEnd:
                 "api_token": "test_token",
                 "email": "test@example.com",
                 "zone_id": "test_zone_id",
-                "base_url": "http://localhost:8081/client/v4",
+                "base_url": f"http://localhost:{port}/client/v4",
             },
             "monitoring": {
                 "check_interval": 2,  # Fast for testing

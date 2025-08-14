@@ -215,14 +215,18 @@ class MockCloudflareServer:
 
     async def start(self) -> None:
         """Start the mock server."""
-        runner = web.AppRunner(self.app)
-        await runner.setup()
-        site = web.TCPSite(runner, "localhost", self.port)
-        await site.start()
+        self.runner = web.AppRunner(self.app)
+        await self.runner.setup()
+        self.site = web.TCPSite(self.runner, "localhost", self.port)
+        await self.site.start()
         print(f"Mock Cloudflare server running on http://localhost:{self.port}")
 
     async def stop(self) -> None:
         """Stop the mock server."""
+        if hasattr(self, "site"):
+            await self.site.stop()
+        if hasattr(self, "runner"):
+            await self.runner.cleanup()
         await self.app.cleanup()
 
 
