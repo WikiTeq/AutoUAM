@@ -80,7 +80,7 @@ class CloudflareClient:
                 headers={
                     "Authorization": f"Bearer {self.api_token}",
                     "Content-Type": "application/json",
-                    "User-Agent": "AutoUAM/1.0.0a5",
+                    "User-Agent": f"AutoUAM/{__import__('autouam').__version__}",
                 },
                 connector=aiohttp.TCPConnector(limit=10, limit_per_host=5),
             )

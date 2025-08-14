@@ -1,6 +1,12 @@
 """AutoUAM - Automated Cloudflare Under Attack Mode management."""
 
-__version__ = "1.0.0a5"
+# Read version from VERSION file
+try:
+    with open("VERSION") as f:
+        __version__ = f.read().strip()
+except FileNotFoundError:
+    # Fallback for when running from installed package
+    __version__ = "unknown"
 __author__ = "Ike Hecht"
 __email__ = "contact@wikiteq.com"
 
