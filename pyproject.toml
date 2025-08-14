@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "autouam"
-version = {file = "VERSION"}
+version = "1.0.0a6"
 description = "Automated Cloudflare Under Attack Mode management based on server load metrics"
 readme = "README.md"
 authors = [
