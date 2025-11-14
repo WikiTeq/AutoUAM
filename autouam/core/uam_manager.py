@@ -53,7 +53,14 @@ class UAMManager:
         self._stop_event = asyncio.Event()
 
     async def initialize(self) -> bool:
-        """Initialize the UAM manager and test Cloudflare connection."""
+        """Initialize the UAM manager and test Cloudflare connection.
+
+        Returns:
+            bool: True if initialization succeeded, False otherwise.
+
+        Raises:
+            UAMManagerInitializationError: For fatal errors that prevent initialization.
+        """
         try:
             # Test Cloudflare connection (client already initialized in __init__)
             async with self.cloudflare_client as client:
@@ -65,14 +72,23 @@ class UAMManager:
             return True
 
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            self.logger.error("Network error during initialization", error=str(e))
-            return False
+            # Network errors are fatal - cannot proceed without Cloudflare API
+            error_msg = f"Network error during initialization: {e}"
+            self.logger.error(error_msg)
+            raise UAMManagerInitializationError(error_msg) from e
         except (ValueError, TypeError) as e:
-            self.logger.error("Configuration error during initialization", error=str(e))
-            return False
+            # Configuration errors are fatal - invalid config cannot be used
+            error_msg = f"Configuration error during initialization: {e}"
+            self.logger.error(error_msg)
+            raise UAMManagerInitializationError(error_msg) from e
+        except UAMManagerInitializationError:
+            # Re-raise initialization errors
+            raise
         except Exception as e:
-            self.logger.error("Unexpected error during initialization", error=str(e))
-            return False
+            # Other unexpected errors are also fatal
+            error_msg = f"Unexpected error during initialization: {e}"
+            self.logger.error(error_msg)
+            raise UAMManagerInitializationError(error_msg) from e
 
     async def _sync_state_with_cloudflare(self) -> None:
         """Sync internal state with actual Cloudflare state."""
@@ -128,8 +144,11 @@ class UAMManager:
 
     async def run(self) -> None:
         """Run the main monitoring loop."""
-        if not await self.initialize():
-            raise RuntimeError("Failed to initialize UAM manager")
+        try:
+            if not await self.initialize():
+                raise UAMManagerInitializationError("Failed to initialize UAM manager")
+        except UAMManagerInitializationError as e:
+            raise RuntimeError(f"Failed to initialize UAM manager: {e}") from e
 
         # Sync state with actual Cloudflare state on startup
         await self._sync_state_with_cloudflare()

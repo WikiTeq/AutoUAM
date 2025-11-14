@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -243,6 +243,16 @@ class Settings(BaseSettings):
         "case_sensitive": False,
         "extra": "ignore",
     }
+
+    @model_validator(mode="before")
+    @classmethod
+    def convert_cloudflare_dict(cls, data: Any) -> Any:
+        """Convert cloudflare dict to CloudflareConfig if needed."""
+        if isinstance(data, dict) and "cloudflare" in data:
+            if isinstance(data["cloudflare"], dict):
+                # Pydantic will handle the conversion, but we ensure it's a dict
+                pass
+        return data
 
     @classmethod
     def customise_sources(

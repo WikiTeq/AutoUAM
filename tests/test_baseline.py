@@ -133,142 +133,142 @@ class TestLoadBaseline:
 class TestLoadMonitorWithBaseline:
     """Test LoadMonitor with baseline functionality."""
 
-    def test_monitor_has_baseline(self):
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
+    def test_monitor_has_baseline(self, mock_validate):
         """Test that LoadMonitor has baseline functionality."""
-        with patch("os.path.exists", return_value=True):
-            monitor = LoadMonitor()
-            assert hasattr(monitor, "baseline")
-            assert isinstance(monitor.baseline, LoadBaseline)
+        monitor = LoadMonitor()
+        assert hasattr(monitor, "baseline")
+        assert isinstance(monitor.baseline, LoadBaseline)
 
-    def test_update_baseline(self):
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
+    def test_update_baseline(self, mock_validate):
         """Test baseline update functionality."""
-        with patch("os.path.exists", return_value=True):
-            monitor = LoadMonitor()
+        monitor = LoadMonitor()
 
-            # Add some samples first
-            monitor.baseline.add_sample(1.0, time.time())
-            monitor.baseline.add_sample(2.0, time.time())
+        # Add some samples first
+        monitor.baseline.add_sample(1.0, time.time())
+        monitor.baseline.add_sample(2.0, time.time())
 
-            # Update baseline
-            monitor.update_baseline(hours=24)
-            assert monitor.baseline.get_baseline() is not None
+        # Update baseline
+        monitor.update_baseline(hours=24)
+        assert monitor.baseline.get_baseline() is not None
 
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
     @patch.object(LoadMonitor, "get_normalized_load", return_value=4.0)
-    def test_is_high_load_relative_true(self, mock_normalized_load):
+    def test_is_high_load_relative_true(self, mock_normalized_load, mock_validate):
         """Test relative high load detection when load is above threshold."""
-        with patch("os.path.exists", return_value=True):
-            monitor = LoadMonitor()
+        monitor = LoadMonitor()
 
-            # Set up baseline
-            monitor.baseline.add_sample(1.0, time.time())
-            monitor.baseline.add_sample(1.5, time.time())  # Need at least 2 samples
-            monitor.baseline.calculate_baseline()
+        # Set up baseline
+        monitor.baseline.add_sample(1.0, time.time())
+        monitor.baseline.add_sample(1.5, time.time())  # Need at least 2 samples
+        monitor.baseline.calculate_baseline()
 
-            # Test with relative threshold (baseline ~1.925 * 2.0 = 3.85, load = 4.0)
-            result = monitor.is_high_load(
-                threshold=5.0,  # Not used when relative=True
-                use_relative=True,
-                relative_multiplier=2.0,
-            )
+        # Test with relative threshold (baseline ~1.925 * 2.0 = 3.85, load = 4.0)
+        result = monitor.is_high_load(
+            threshold=5.0,  # Not used when relative=True
+            use_relative=True,
+            relative_multiplier=2.0,
+        )
 
-            assert result is True
+        assert result is True
 
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
     @patch.object(LoadMonitor, "get_normalized_load", return_value=1.5)
-    def test_is_high_load_relative_false(self, mock_normalized_load):
+    def test_is_high_load_relative_false(self, mock_normalized_load, mock_validate):
         """Test relative high load detection when load is below threshold."""
-        with patch("os.path.exists", return_value=True):
-            monitor = LoadMonitor()
+        monitor = LoadMonitor()
 
-            # Set up baseline
-            monitor.baseline.add_sample(1.0, time.time())
-            monitor.baseline.add_sample(1.5, time.time())  # Need at least 2 samples
-            monitor.baseline.calculate_baseline()
+        # Set up baseline
+        monitor.baseline.add_sample(1.0, time.time())
+        monitor.baseline.add_sample(1.5, time.time())  # Need at least 2 samples
+        monitor.baseline.calculate_baseline()
 
-            # Test with relative threshold (baseline ~1.925 * 2.0 = 3.85, load = 1.5)
-            result = monitor.is_high_load(
-                threshold=5.0,  # Not used when relative=True
-                use_relative=True,
-                relative_multiplier=2.0,
-            )
+        # Test with relative threshold (baseline ~1.925 * 2.0 = 3.85, load = 1.5)
+        result = monitor.is_high_load(
+            threshold=5.0,  # Not used when relative=True
+            use_relative=True,
+            relative_multiplier=2.0,
+        )
 
-            assert result is False
+        assert result is False
 
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
     @patch.object(LoadMonitor, "get_normalized_load", return_value=0.5)
-    def test_is_low_load_relative_true(self, mock_normalized_load):
+    def test_is_low_load_relative_true(self, mock_normalized_load, mock_validate):
         """Test relative low load detection when load is below threshold."""
-        with patch("os.path.exists", return_value=True):
-            monitor = LoadMonitor()
+        monitor = LoadMonitor()
 
-            # Set up baseline
-            monitor.baseline.add_sample(1.0, time.time())
-            monitor.baseline.add_sample(1.5, time.time())  # Need at least 2 samples
-            monitor.baseline.calculate_baseline()
+        # Set up baseline
+        monitor.baseline.add_sample(1.0, time.time())
+        monitor.baseline.add_sample(1.5, time.time())  # Need at least 2 samples
+        monitor.baseline.calculate_baseline()
 
-            # Test with relative threshold (baseline ~1.925 * 1.5 = 2.89, load = 0.5)
-            result = monitor.is_low_load(
-                threshold=0.1,  # Not used when relative=True
-                use_relative=True,
-                relative_multiplier=1.5,
-            )
+        # Test with relative threshold (baseline ~1.925 * 1.5 = 2.89, load = 0.5)
+        result = monitor.is_low_load(
+            threshold=0.1,  # Not used when relative=True
+            use_relative=True,
+            relative_multiplier=1.5,
+        )
 
-            assert result is True
+        assert result is True
 
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
     @patch.object(LoadMonitor, "get_normalized_load", return_value=3.0)
-    def test_is_low_load_relative_false(self, mock_normalized_load):
+    def test_is_low_load_relative_false(self, mock_normalized_load, mock_validate):
         """Test relative low load detection when load is above threshold."""
-        with patch("os.path.exists", return_value=True):
-            monitor = LoadMonitor()
+        monitor = LoadMonitor()
 
-            # Set up baseline
-            monitor.baseline.add_sample(1.0, time.time())
-            monitor.baseline.add_sample(1.5, time.time())  # Need at least 2 samples
-            monitor.baseline.calculate_baseline()
+        # Set up baseline
+        monitor.baseline.add_sample(1.0, time.time())
+        monitor.baseline.add_sample(1.5, time.time())  # Need at least 2 samples
+        monitor.baseline.calculate_baseline()
 
-            # Test with relative threshold (baseline ~1.925 * 1.5 = 2.89, load = 3.0)
-            result = monitor.is_low_load(
-                threshold=0.1,  # Not used when relative=True
-                use_relative=True,
-                relative_multiplier=1.5,
-            )
+        # Test with relative threshold (baseline ~1.925 * 1.5 = 2.89, load = 3.0)
+        result = monitor.is_low_load(
+            threshold=0.1,  # Not used when relative=True
+            use_relative=True,
+            relative_multiplier=1.5,
+        )
 
-            assert result is False
+        assert result is False
 
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
     @patch.object(LoadMonitor, "get_normalized_load", return_value=3.0)
-    def test_relative_thresholds_fallback_to_absolute(self, mock_normalized_load):
+    def test_relative_thresholds_fallback_to_absolute(self, mock_normalized_load, mock_validate):
         """Test that relative thresholds fall back to absolute when no baseline."""
-        with patch("os.path.exists", return_value=True):
-            monitor = LoadMonitor()
+        monitor = LoadMonitor()
 
-            # No baseline set up
+        # No baseline set up
 
-            # Test with relative threshold but no baseline
-            result = monitor.is_high_load(
-                threshold=2.0, use_relative=True, relative_multiplier=2.0
-            )
+        # Test with relative threshold but no baseline
+        result = monitor.is_high_load(
+            threshold=2.0, use_relative=True, relative_multiplier=2.0
+        )
 
-            # Should fall back to absolute threshold (3.0 > 2.0)
-            assert result is True
+        # Should fall back to absolute threshold (3.0 > 2.0)
+        assert result is True
 
-    def test_get_normalized_load_adds_to_baseline(self):
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
+    def test_get_normalized_load_adds_to_baseline(self, mock_validate):
         """Test that get_normalized_load adds samples to baseline."""
-        with patch("os.path.exists", return_value=True):
-            monitor = LoadMonitor()
+        monitor = LoadMonitor()
 
-            # Mock the load average and CPU count
-            with patch.object(
-                monitor, "get_load_average"
-            ) as mock_load_avg, patch.object(monitor, "get_cpu_count", return_value=2):
+        # Mock the load average and CPU count
+        with patch.object(
+            monitor, "get_load_average"
+        ) as mock_load_avg, patch.object(monitor, "get_cpu_count", return_value=2):
 
-                # Mock load average
-                mock_load_avg.return_value.average = 4.0
-                mock_load_avg.return_value.timestamp = time.time()
+            # Mock load average
+            mock_load_avg.return_value.average = 4.0
+            mock_load_avg.return_value.timestamp = time.time()
 
-                # Get normalized load
-                result = monitor.get_normalized_load()
+            # Get normalized load
+            result = monitor.get_normalized_load()
 
-                # Should return normalized value (4.0 / 2 = 2.0)
-                assert result == 2.0
+            # Should return normalized value (4.0 / 2 = 2.0)
+            assert result == 2.0
 
-                # Should have added sample to baseline
-                assert len(monitor.baseline.samples) == 1
-                assert monitor.baseline.samples[0][0] == 2.0
+            # Should have added sample to baseline
+            assert len(monitor.baseline.samples) == 1
+            assert monitor.baseline.samples[0][0] == 2.0
