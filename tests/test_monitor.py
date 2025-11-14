@@ -43,14 +43,15 @@ class TestLoadMonitor:
 
     def test_load_monitor_platform_validation(self):
         """Test platform validation."""
-        with patch("os.path.exists", return_value=False):
-            with pytest.raises(RuntimeError, match="Load monitoring requires Linux"):
+        with patch("os.getloadavg", side_effect=OSError("Not available")):
+            with pytest.raises(RuntimeError, match="os.getloadavg"):
                 LoadMonitor()
 
+    @patch("os.getloadavg", return_value=(1.23, 4.56, 7.89))
     @patch(
         "builtins.open", new_callable=mock_open, read_data="1.23 4.56 7.89 12/34 56789"
     )
-    def test_get_load_average_success(self, mock_file):
+    def test_get_load_average_success(self, mock_file, mock_getloadavg):
         """Test successful load average retrieval."""
         with patch("os.path.exists", return_value=True):
             monitor = LoadMonitor()
@@ -63,57 +64,67 @@ class TestLoadMonitor:
             assert load_avg.total_processes == 34
             assert load_avg.last_pid == 56789
 
-    @patch("builtins.open", new_callable=mock_open, read_data="invalid format")
-    def test_get_load_average_invalid_format(self, mock_file):
+    @patch("os.getloadavg", return_value=(1.23, 4.56, 7.89))
+    def test_get_load_average_invalid_format(self, mock_getloadavg):
         """Test load average retrieval with invalid format."""
         with patch("os.path.exists", return_value=True):
             monitor = LoadMonitor()
-            with pytest.raises(ValueError, match="Invalid /proc/loadavg format"):
-                monitor.get_load_average()
+            # os.getloadavg() should work, so this test is now about
+            # /proc/loadavg parsing which is optional metadata,
+            # so it should not raise an error
+            load_avg = monitor.get_load_average()
+            assert load_avg.one_minute == 1.23
 
+    @patch("os.getloadavg", return_value=(1.23, 4.56, 7.89))
     @patch("builtins.open", new_callable=mock_open, read_data="1.23 4.56 7.89 12/34")
-    def test_get_load_average_missing_pid(self, mock_file):
+    def test_get_load_average_missing_pid(self, mock_file, mock_getloadavg):
         """Test load average retrieval with missing PID."""
         with patch("os.path.exists", return_value=True):
             monitor = LoadMonitor()
-            with pytest.raises(ValueError, match="Invalid /proc/loadavg format"):
-                monitor.get_load_average()
+            # Missing PID in /proc/loadavg is handled gracefully, defaults to 0
+            load_avg = monitor.get_load_average()
+            assert load_avg.one_minute == 1.23
+            assert load_avg.last_pid == 0
 
+    @patch("os.getloadavg", return_value=(1.23, 4.56, 7.89))
     @patch(
         "builtins.open",
         new_callable=mock_open,
         read_data="1.23 4.56 7.89 invalid/34 56789",
     )
-    def test_get_load_average_invalid_process_count(self, mock_file):
+    def test_get_load_average_invalid_process_count(self, mock_file, mock_getloadavg):
         """Test load average retrieval with invalid process count."""
         with patch("os.path.exists", return_value=True):
             monitor = LoadMonitor()
-            with pytest.raises(ValueError, match="invalid literal for int"):
-                monitor.get_load_average()
+            # Invalid process count in /proc/loadavg is handled gracefully,
+            # defaults to 0
+            load_avg = monitor.get_load_average()
+            assert load_avg.one_minute == 1.23
+            assert load_avg.running_processes == 0
 
+    @patch("os.getloadavg", return_value=(1.23, 4.56, 7.89))
     @patch("builtins.open", side_effect=PermissionError("Permission denied"))
-    def test_get_load_average_permission_error(self, mock_file):
-        """Test load average retrieval when file access is denied."""
+    def test_get_load_average_permission_error(self, mock_file, mock_getloadavg):
+        """Test load average retrieval when /proc/loadavg access is denied."""
         with patch("os.path.exists", return_value=True):
             monitor = LoadMonitor()
-            with pytest.raises(PermissionError):
-                monitor.get_load_average()
+            # Permission error on /proc/loadavg is handled gracefully
+            # since os.getloadavg() works
+            load_avg = monitor.get_load_average()
+            assert load_avg.one_minute == 1.23
 
-    @patch(
-        "builtins.open",
-        new_callable=mock_open,
-        read_data="processor\t: 0\nprocessor\t: 1\nprocessor\t: 2",
-    )
-    def test_get_cpu_count_success(self, mock_file):
+    @patch("os.cpu_count", return_value=4)
+    def test_get_cpu_count_success(self, mock_cpu_count):
         """Test successful CPU count retrieval."""
         with patch("os.path.exists", return_value=True):
             monitor = LoadMonitor()
             cpu_count = monitor.get_cpu_count()
-            assert cpu_count == 3
+            assert cpu_count == 4
 
+    @patch("os.cpu_count", return_value=None)
     @patch("builtins.open", side_effect=FileNotFoundError("File not found"))
-    def test_get_cpu_count_file_not_found(self, mock_file):
-        """Test CPU count retrieval when file is not found."""
+    def test_get_cpu_count_file_not_found(self, mock_file, mock_cpu_count):
+        """Test CPU count when os.cpu_count() returns None and files not found."""
         with patch("os.path.exists", return_value=True):
             monitor = LoadMonitor()
             cpu_count = monitor.get_cpu_count()

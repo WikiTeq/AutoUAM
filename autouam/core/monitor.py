@@ -126,61 +126,79 @@ class LoadMonitor:
         system = platform.system().lower()
 
         if system == "linux":
-            if not os.path.exists("/proc/loadavg"):
+            # Check if os.getloadavg() is available (should be on Linux/Unix)
+            try:
+                os.getloadavg()
+                self.logger.info("Load monitor initialized for Linux platform")
+            except OSError:
                 raise RuntimeError(
-                    "Load monitoring requires Linux with /proc/loadavg. "
-                    "This may indicate a containerized environment or "
-                    "non-standard Linux distribution."
+                    "Load monitoring requires a platform that supports "
+                    "os.getloadavg(). This may indicate a containerized "
+                    "environment or non-standard Linux distribution."
                 )
-            self.logger.info("Load monitor initialized for Linux platform")
         elif system == "darwin":
-            # macOS support could be added in the future
-            raise RuntimeError(
-                f"Load monitoring is not yet supported on {system}. "
-                "Currently only Linux with /proc/loadavg is supported."
-            )
+            # macOS supports os.getloadavg()
+            try:
+                os.getloadavg()
+                self.logger.info("Load monitor initialized for macOS platform")
+            except OSError:
+                raise RuntimeError(
+                    f"Load monitoring is not supported on {system}. "
+                    "os.getloadavg() is not available."
+                )
         elif system == "windows":
             raise RuntimeError(
                 f"Load monitoring is not supported on {system}. "
-                "Currently only Linux with /proc/loadavg is supported."
+                "Windows does not support os.getloadavg()."
             )
         else:
-            raise RuntimeError(
-                f"Load monitoring is not supported on {system}. "
-                "Currently only Linux with /proc/loadavg is supported."
-            )
+            # Try to use os.getloadavg() for other Unix-like systems
+            try:
+                os.getloadavg()
+                self.logger.info(f"Load monitor initialized for {system} platform")
+            except OSError:
+                raise RuntimeError(
+                    f"Load monitoring is not supported on {system}. "
+                    "os.getloadavg() is not available."
+                )
 
     def update_baseline(self, hours: int = 24) -> None:
         """Update the load baseline."""
         self.baseline.calculate_baseline(hours)
 
     def get_load_average(self) -> LoadAverage:
-        """Get current load average from /proc/loadavg."""
+        """Get current load average using os.getloadavg()."""
         try:
-            with open("/proc/loadavg", "r") as f:
-                content = f.read().strip()
+            # Use os.getloadavg() which is the standard cross-platform way
+            # Returns (1min, 5min, 15min) load averages
+            load_avgs = os.getloadavg()
+            one_minute = float(load_avgs[0])
+            five_minute = float(load_avgs[1])
+            fifteen_minute = float(load_avgs[2])
 
-            # Parse /proc/loadavg format: "1.23 4.56 7.89 12/34 56789"
-            parts = content.split()
+            # Get process counts from /proc/loadavg for additional info
+            # This is optional metadata, not critical for load average
+            running_processes = 0
+            total_processes = 0
+            last_pid = 0
 
-            if len(parts) < 5:
-                raise ValueError(f"Invalid /proc/loadavg format: {content}")
-
-            # Load averages (1min, 5min, 15min)
-            one_minute = float(parts[0])
-            five_minute = float(parts[1])
-            fifteen_minute = float(parts[2])
-
-            # Process counts (running/total)
-            process_parts = parts[3].split("/")
-            if len(process_parts) != 2:
-                raise ValueError(f"Invalid process count format: {parts[3]}")
-
-            running_processes = int(process_parts[0])
-            total_processes = int(process_parts[1])
-
-            # Last PID
-            last_pid = int(parts[4])
+            try:
+                with open("/proc/loadavg", "r") as f:
+                    content = f.read().strip()
+                    parts = content.split()
+                    if len(parts) >= 5:
+                        # Process counts (running/total)
+                        process_parts = parts[3].split("/")
+                        if len(process_parts) == 2:
+                            running_processes = int(process_parts[0])
+                            total_processes = int(process_parts[1])
+                        # Last PID
+                        last_pid = int(parts[4])
+            except (IOError, OSError, ValueError, IndexError):
+                # If /proc/loadavg is not available, use defaults
+                # This is fine since we already have the load averages
+                # from os.getloadavg()
+                pass
 
             load_avg = LoadAverage(
                 one_minute=one_minute,
@@ -203,15 +221,12 @@ class LoadMonitor:
 
             return load_avg
 
-        except (IOError, OSError) as e:
-            self.logger.error("Failed to read /proc/loadavg", error=str(e))
-            raise
-        except (ValueError, IndexError) as e:
-            self.logger.error("Failed to parse /proc/loadavg", error=str(e))
+        except OSError as e:
+            self.logger.error("Failed to get load average", error=str(e))
             raise
 
     def get_cpu_count(self) -> int:
-        """Get the number of CPU cores."""
+        """Get the number of CPU cores using os.cpu_count()."""
         current_time = time.time()
 
         # Return cached CPU count if still valid
@@ -221,37 +236,41 @@ class LoadMonitor:
         ):
             return self._cpu_count_cache
 
-        try:
-            with open("/proc/cpuinfo", "r") as f:
-                content = f.read()
+        # Use os.cpu_count() which is the standard cross-platform way
+        cpu_count = os.cpu_count()
 
-            # Count processor entries
-            cpu_count = content.count("processor")
+        if cpu_count is None:
+            # Fallback: try /proc/cpuinfo for Linux if os.cpu_count() returns None
+            try:
+                with open("/proc/cpuinfo", "r") as f:
+                    content = f.read()
+                    cpu_count = content.count("processor")
+                    if cpu_count == 0:
+                        # Fallback: try to read from /proc/stat
+                        with open("/proc/stat", "r") as f:
+                            lines = f.readlines()
+                        cpu_count = sum(
+                            1
+                            for line in lines
+                            if line.startswith("cpu") and line != "cpu\n"
+                        )
+            except (IOError, OSError):
+                pass
 
-            if cpu_count == 0:
-                # Fallback: try to read from /proc/stat
-                with open("/proc/stat", "r") as f:
-                    lines = f.readlines()
-
-                cpu_count = sum(
-                    1 for line in lines if line.startswith("cpu") and line != "cpu\n"
-                )
-
-            # Cache the CPU count
-            self._cpu_count_cache = cpu_count
-            self._cpu_count_cache_time = current_time
-
-            self.logger.debug("CPU count determined", cpu_count=cpu_count)
-            return cpu_count
-
-        except (IOError, OSError) as e:
+        # Final fallback if all methods fail
+        if cpu_count is None or cpu_count == 0:
             self.logger.warning(
-                "Failed to determine CPU count, assuming 1", error=str(e)
+                "Failed to determine CPU count, assuming 1",
+                cpu_count_from_os=os.cpu_count(),
             )
-            # Cache the fallback value
-            self._cpu_count_cache = 1
-            self._cpu_count_cache_time = current_time
-            return 1
+            cpu_count = 1
+
+        # Cache the CPU count
+        self._cpu_count_cache = cpu_count
+        self._cpu_count_cache_time = current_time
+
+        self.logger.debug("CPU count determined", cpu_count=cpu_count)
+        return cpu_count
 
     def get_normalized_load(self) -> float:
         """Get load average normalized by CPU count."""

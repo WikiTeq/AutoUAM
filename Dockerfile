@@ -15,9 +15,6 @@ RUN mkdir -p /etc/autouam /var/log/autouam /var/run/autouam /var/lib/autouam
 # Install AutoUAM
 RUN pip install --no-cache-dir autouam
 
-# Copy default configuration
-COPY docker/config.yaml /etc/autouam/config.yaml
-
 # Set ownership
 RUN chown -R autouam:autouam /etc/autouam /var/log/autouam /var/run/autouam /var/lib/autouam
 
