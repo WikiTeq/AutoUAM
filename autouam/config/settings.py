@@ -1,5 +1,6 @@
 """Configuration settings for AutoUAM."""
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -89,12 +90,37 @@ class Settings(BaseSettings):
     }
 
     @classmethod
+    def _substitute_env_vars(cls, data: Any) -> Any:
+        """Recursively substitute environment variables in configuration data."""
+        if isinstance(data, dict):
+            return {k: cls._substitute_env_vars(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [cls._substitute_env_vars(item) for item in data]
+        elif isinstance(data, str) and data.startswith("${") and data.endswith("}"):
+            env_var = data[2:-1]
+            # Handle default values in format ${VAR:-default}
+            if ":-" in env_var:
+                var_name, default_value = env_var.split(":-", 1)
+                return os.getenv(var_name, default_value)
+            else:
+                value = os.getenv(env_var)
+                if value is None:
+                    # Keep the original placeholder if no default and env var not set
+                    return data
+                return value
+        else:
+            return data
+
+    @classmethod
     def from_file(cls, config_path: Path) -> "Settings":
         """Load settings from a configuration file."""
         import yaml
 
         with open(config_path) as f:
             config_data = yaml.safe_load(f) or {}
+
+        # Handle environment variable substitution
+        config_data = cls._substitute_env_vars(config_data)
 
         return cls(**config_data)
 
