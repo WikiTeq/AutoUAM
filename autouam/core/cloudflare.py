@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 import aiohttp
 from aiohttp import ClientTimeout
 
+from .. import __version__
 from ..logging.setup import get_logger
 
 
@@ -80,7 +81,7 @@ class CloudflareClient:
                 headers={
                     "Authorization": f"Bearer {self.api_token}",
                     "Content-Type": "application/json",
-                    "User-Agent": f"AutoUAM/{__import__('autouam').__version__}",
+                    "User-Agent": f"AutoUAM/{__version__}",
                 },
                 connector=aiohttp.TCPConnector(limit=10, limit_per_host=5),
             )

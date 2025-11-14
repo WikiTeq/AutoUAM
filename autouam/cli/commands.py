@@ -14,6 +14,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.text import Text
 
+from .. import __version__
 from ..config.settings import Settings
 from ..config.validators import (
     generate_sample_config,
@@ -62,7 +63,7 @@ class CLIContext:
 
 
 @click.group()
-@click.version_option(version=__import__("autouam").__version__, prog_name="autouam")
+@click.version_option(version=__version__, prog_name="autouam")
 @click.option(
     "--config", "-c", type=click.Path(exists=True), help="Configuration file path"
 )

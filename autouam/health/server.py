@@ -5,6 +5,7 @@ from typing import Optional
 
 from aiohttp import web
 
+from .. import __version__
 from ..config.settings import Settings
 from ..logging.setup import get_logger
 from .checks import HealthChecker
@@ -104,7 +105,7 @@ class HealthServer:
         return web.json_response(
             {
                 "service": "AutoUAM Health Server",
-                "version": __import__("autouam").__version__,
+                "version": __version__,
                 "endpoints": {
                     "health": self.config.health.endpoint,
                     "metrics": self.config.health.metrics_endpoint,
