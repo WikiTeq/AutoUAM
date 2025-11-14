@@ -1,12 +1,17 @@
 """AutoUAM - Automated Cloudflare Under Attack Mode management."""
 
-# Read version from VERSION file
+# Read version from package metadata or VERSION file
 try:
-    with open("VERSION") as f:
-        __version__ = f.read().strip()
-except FileNotFoundError:
-    # Fallback for when running from installed package
-    __version__ = "unknown"
+    from importlib.metadata import version
+
+    __version__ = version("autouam")
+except Exception:
+    # Fallback to VERSION file for development
+    try:
+        with open("VERSION") as f:
+            __version__ = f.read().strip()
+    except FileNotFoundError:
+        __version__ = "unknown"
 __author__ = "Ike Hecht"
 __email__ = "contact@wikiteq.com"
 
