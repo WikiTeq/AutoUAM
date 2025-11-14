@@ -8,7 +8,7 @@ import pytest
 from aiohttp import ClientResponseError
 
 from autouam.config.settings import Settings
-from autouam.core.uam_manager import UAMManager
+from autouam.core.uam_manager import UAMManager, UAMManagerInitializationError
 from autouam.health.checks import HealthChecker
 
 
@@ -160,9 +160,9 @@ class TestUAMManagerIntegration:
             mock_client_class.return_value = mock_client_instance
 
             manager = UAMManager(mock_settings)
-            success = await manager.initialize()
-
-            assert success is False
+            # Now initialize() raises UAMManagerInitializationError for fatal errors
+            with pytest.raises(UAMManagerInitializationError):
+                await manager.initialize()
 
     @pytest.mark.asyncio
     async def test_uam_manager_rate_limiting(self, mock_settings):

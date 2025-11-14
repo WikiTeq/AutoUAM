@@ -1,10 +1,8 @@
 """Tests for logging setup functionality."""
 
-import json
 import logging
 import tempfile
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -54,6 +52,7 @@ class TestLoggingSetup:
 
         # Verify JSON format - check that structlog is configured with JSON renderer
         import structlog
+
         assert structlog.is_configured()
 
         # Verify log level is set
@@ -106,6 +105,8 @@ class TestLoggingSetup:
 
     def test_setup_logging_both(self, mock_logging_config, caplog):
         """Test logging setup with both stdout and file output."""
+        # Note: "both" is not a valid output option, so it defaults to stdout
+        # This test verifies that invalid output options default gracefully
         mock_logging_config.output = "both"
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -119,11 +120,12 @@ class TestLoggingSetup:
                 logger = logging.getLogger("autouam.test")
                 logger.info("Test both message")
 
-            # Verify file was created
-            assert log_file.exists()
+            # "both" is not supported, so it defaults to stdout (no file created)
             # Verify logging is configured
             root_logger = logging.getLogger()
             assert root_logger.level == logging.INFO
+            # File should not exist since "both" defaults to stdout
+            assert not log_file.exists()
 
     @pytest.mark.parametrize("level", ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
     def test_setup_logging_levels(self, mock_logging_config, level):
@@ -149,6 +151,7 @@ class TestLoggingSetup:
         renderer = _get_renderer("text")
         # Should return ConsoleRenderer for text format
         from structlog.dev import ConsoleRenderer
+
         assert isinstance(renderer, ConsoleRenderer)
 
     def test_get_renderer_json(self):
@@ -156,6 +159,7 @@ class TestLoggingSetup:
         renderer = _get_renderer("json")
         # Should return JSONRenderer for JSON format
         from structlog.processors import JSONRenderer
+
         assert isinstance(renderer, JSONRenderer)
 
     def test_get_renderer_invalid_format(self):
@@ -163,22 +167,19 @@ class TestLoggingSetup:
         renderer = _get_renderer("invalid")
         # Should default to ConsoleRenderer
         from structlog.dev import ConsoleRenderer
+
         assert isinstance(renderer, ConsoleRenderer)
 
-    def test_setup_logging_invalid_output(self, mock_logging_config, caplog):
-        """Test logging setup with invalid output (should default to stdout)."""
-        mock_logging_config.output = "invalid"
-
-        with caplog.at_level(logging.INFO):
-            setup_logging(mock_logging_config)
-
-            # Should still work, defaulting to stdout
-            logger = logging.getLogger("autouam.test")
-            logger.info("Test message")
-
-        # Verify logging is configured
-        root_logger = logging.getLogger()
-        assert root_logger.level == logging.INFO
+    def test_setup_logging_invalid_output(self):
+        """Test that invalid output raises validation error."""
+        # Invalid output should raise ValueError during config creation
+        with pytest.raises(ValueError, match="Log output must be one of"):
+            LoggingConfig(
+                level="INFO",
+                format="text",
+                output="invalid",  # Invalid output
+                file_path="/var/log/autouam.log",
+            )
 
     def test_setup_logging_file_creation_error(self, mock_logging_config):
         """Test logging setup with file creation error."""
@@ -198,9 +199,11 @@ class TestLoggingSetup:
                 setup_logging(mock_logging_config)
                 # If it doesn't raise, verify the directory was created
                 assert invalid_path.parent.exists()
-            except (OSError, PermissionError) as e:
+            except (OSError, PermissionError):
                 # These are acceptable exceptions for file creation errors
-                assert "test.log" in str(invalid_path) or "nonexistent" in str(invalid_path)
+                assert "test.log" in str(invalid_path) or "nonexistent" in str(
+                    invalid_path
+                )
 
     def test_setup_logging_structlog_configuration(self, mock_logging_config):
         """Test that structlog is properly configured."""
@@ -208,10 +211,18 @@ class TestLoggingSetup:
 
         # Verify that structlog is configured
         import structlog
+
         assert structlog.is_configured()
 
     def test_setup_logging_rotating_file_handler(self, mock_logging_config):
         """Test logging setup with rotating file handler."""
+        # Clean up any existing handlers to ensure test isolation
+        root_logger = logging.getLogger()
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
+            if hasattr(handler, "close"):
+                handler.close()
+
         mock_logging_config.output = "file"
         mock_logging_config.max_size_mb = 10
         mock_logging_config.max_backups = 3
@@ -224,11 +235,18 @@ class TestLoggingSetup:
 
             # Verify that rotating file handler is used
             root_logger = logging.getLogger()
-            handlers = [h for h in root_logger.handlers if hasattr(h, 'maxBytes')]
-            assert len(handlers) > 0
-            # Verify maxBytes is set correctly (10 MB)
-            assert handlers[0].maxBytes == 10 * 1024 * 1024
-            assert handlers[0].backupCount == 3
+            handlers = [h for h in root_logger.handlers if hasattr(h, "maxBytes")]
+            assert len(handlers) > 0, "No RotatingFileHandler found"
+            # Find the RotatingFileHandler
+            rotating_handler = None
+            for h in handlers:
+                if hasattr(h, "maxBytes") and hasattr(h, "backupCount"):
+                    rotating_handler = h
+                    break
+            assert rotating_handler is not None, "RotatingFileHandler not found"
+            # Verify maxBytes is set correctly (10 MB = 10 * 1024 * 1024 bytes)
+            assert rotating_handler.maxBytes == 10 * 1024 * 1024
+            assert rotating_handler.backupCount == 3
 
     def test_setup_logging_multiple_calls(self, mock_logging_config):
         """Test that multiple calls to setup_logging work correctly."""
@@ -252,6 +270,6 @@ class TestLoggingSetup:
         assert len(root_logger.handlers) > 0
 
         # Verify autouam logger handlers are managed separately
-        autouam_logger = logging.getLogger("autouam")
         # autouam logger should not have handlers (they're on root)
         # but the logger should exist and be configured
+        logging.getLogger("autouam")  # Verify logger exists

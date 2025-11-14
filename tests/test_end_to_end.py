@@ -24,7 +24,8 @@ from autouam.config.settings import Settings
 from autouam.core.uam_manager import UAMManager
 from autouam.health.checks import HealthChecker
 
-# Import MockCloudflareServer only for standalone EndToEndTester (not used in pytest tests)
+# Import MockCloudflareServer only for standalone EndToEndTester
+# (not used in pytest tests)
 try:
     from tests.mock_cloudflare_server import MockCloudflareServer
 except ImportError:
@@ -78,8 +79,8 @@ class TestEndToEnd:
         """Test that AutoUAM initializes correctly."""
         settings = end_to_end_setup["settings"]
 
-        # Mock Cloudflare client
-        with patch("autouam.core.cloudflare.CloudflareClient") as mock_client_class:
+        # Mock Cloudflare client - patch at the import location in uam_manager
+        with patch("autouam.core.uam_manager.CloudflareClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -97,13 +98,15 @@ class TestEndToEnd:
         """Test health checker."""
         settings = end_to_end_setup["settings"]
 
-        # Mock Cloudflare client
-        with patch("autouam.core.cloudflare.CloudflareClient") as mock_client_class:
+        # Mock Cloudflare client - patch at the import location in health checker
+        with patch("autouam.health.checks.CloudflareClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
             mock_client.test_connection = AsyncMock(return_value=True)
-            mock_client.get_current_security_level = AsyncMock(return_value="essentially_off")
+            mock_client.get_current_security_level = AsyncMock(
+                return_value="essentially_off"
+            )
             mock_client_class.return_value = mock_client
 
             checker = HealthChecker(settings)
@@ -113,7 +116,9 @@ class TestEndToEnd:
 
             assert result["healthy"] is True, "Health check should pass"
             for check_name, check_result in result["checks"].items():
-                assert check_result["healthy"] is True, f"Check {check_name} should pass"
+                assert (
+                    check_result["healthy"] is True
+                ), f"Check {check_name} should pass"
 
     @pytest.mark.asyncio
     @patch("autouam.core.monitor.LoadMonitor._validate_platform")
@@ -121,8 +126,8 @@ class TestEndToEnd:
         """Test manual UAM control."""
         settings = end_to_end_setup["settings"]
 
-        # Mock Cloudflare client
-        with patch("autouam.core.cloudflare.CloudflareClient") as mock_client_class:
+        # Mock Cloudflare client - patch at the import location in uam_manager
+        with patch("autouam.core.uam_manager.CloudflareClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
@@ -147,25 +152,29 @@ class TestEndToEnd:
         """Test the high load scenario."""
         settings = end_to_end_setup["settings"]
 
-        # Mock Cloudflare client
-        with patch("autouam.core.cloudflare.CloudflareClient") as mock_client_class:
+        # Mock Cloudflare client - patch at the import location in uam_manager
+        with patch("autouam.core.uam_manager.CloudflareClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
             mock_client.test_connection = AsyncMock(return_value=True)
             mock_client.set_security_level = AsyncMock(return_value=True)
-            mock_client.get_current_security_level = AsyncMock(return_value="essentially_off")
+            mock_client.get_current_security_level = AsyncMock(
+                return_value="essentially_off"
+            )
             mock_client_class.return_value = mock_client
 
             manager = UAMManager(settings)
             await manager.initialize()
 
             # Mock high load
-            with patch.object(manager.monitor, "get_normalized_load", return_value=30.0):
+            with patch.object(
+                manager.monitor, "get_normalized_load", return_value=30.0
+            ):
                 # Use check_once to simulate a monitoring cycle
                 result = await manager.check_once()
 
-                # Check if UAM was enabled (or at least the check completed successfully)
+                # Check if UAM was enabled (or at least check completed successfully)
                 assert "error" not in result, "Check should complete without errors"
                 assert "system" in result, "Result should contain system information"
 
@@ -175,14 +184,16 @@ class TestEndToEnd:
         """Test the low load scenario."""
         settings = end_to_end_setup["settings"]
 
-        # Mock Cloudflare client
-        with patch("autouam.core.cloudflare.CloudflareClient") as mock_client_class:
+        # Mock Cloudflare client - patch at the import location in uam_manager
+        with patch("autouam.core.uam_manager.CloudflareClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
             mock_client.test_connection = AsyncMock(return_value=True)
             mock_client.set_security_level = AsyncMock(return_value=True)
-            mock_client.get_current_security_level = AsyncMock(return_value="essentially_off")
+            mock_client.get_current_security_level = AsyncMock(
+                return_value="essentially_off"
+            )
             mock_client_class.return_value = mock_client
 
             manager = UAMManager(settings)
@@ -209,8 +220,10 @@ class TestEndToEnd:
     async def test_error_handling(self, mock_validate, end_to_end_setup):
         """Test error handling scenarios."""
         # Test with invalid token (too short)
-        with pytest.raises(ValueError, match="API token must be at least 10 characters"):
-            invalid_settings = Settings(
+        with pytest.raises(
+            ValueError, match="API token must be at least 10 characters"
+        ):
+            Settings(
                 cloudflare={
                     "api_token": "short",
                     "email": "test@example.com",
