@@ -20,8 +20,10 @@ def setup_logging(config: LoggingConfig) -> None:
 
     # Create formatter
     if config.format == "json":
-        formatter = logging.Formatter('{"timestamp": "%(asctime)s", "level": '
-                                       '"%(levelname)s", "message": "%(message)s"}')
+        formatter = logging.Formatter(
+            '{"timestamp": "%(asctime)s", "level": '
+            '"%(levelname)s", "message": "%(message)s"}'
+        )
     else:
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
