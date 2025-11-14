@@ -255,15 +255,6 @@ The project includes GitHub Actions workflows for:
 - **Coverage Reporting**: Generate and publish coverage reports
 - **Release Management**: Automated releases
 
-### Pre-commit Hooks
-
-```bash
-# Install pre-commit hooks
-pre-commit install
-
-# Run manually
-pre-commit run --all-files
-```
 
 ## Debugging Tests
 

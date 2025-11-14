@@ -6,7 +6,7 @@ This document summarizes the testing and validation of AutoUAM's dynamic thresho
 
 ## ✅ Implementation Status
 
-**Dynamic thresholds are fully implemented and working in the `MW-437` branch.**
+**Dynamic thresholds are fully implemented and working in the main branch.**
 
 ### Key Components
 
@@ -65,7 +65,7 @@ This document summarizes the testing and validation of AutoUAM's dynamic thresho
 
 ## 🚀 Demonstration Results
 
-The demonstration script (`test_dynamic_thresholds_demo.py`) successfully shows:
+The dynamic thresholds feature successfully demonstrates:
 
 1. **Baseline Establishment**: System builds baseline from 24 hours of historical data
 2. **Threshold Calculation**: Dynamic thresholds adapt to server's normal load patterns
@@ -162,10 +162,9 @@ else:
 
 ## 🚨 Important Notes
 
-1. **Branch Requirement**: Dynamic thresholds are only available in the `MW-437` branch
-2. **Baseline Building**: System needs time to build baseline before relative thresholds become effective
-3. **Configuration Validation**: All relative threshold parameters are validated with sensible defaults
-4. **Backward Compatibility**: Absolute thresholds still work when relative thresholds are disabled
+1. **Baseline Building**: System needs time to build baseline before relative thresholds become effective
+2. **Configuration Validation**: All relative threshold parameters are validated with sensible defaults
+3. **Backward Compatibility**: Absolute thresholds still work when relative thresholds are disabled
 
 ## 📈 Future Enhancements
 
@@ -179,5 +178,3 @@ Potential improvements for future versions:
 ## ✅ Conclusion
 
 The dynamic thresholds feature is **fully implemented, thoroughly tested, and ready for production use**. It provides significant improvements over static thresholds by adapting to each server's unique load patterns while maintaining robust fallback mechanisms.
-
-**Recommendation**: Merge the `MW-437` branch to include this feature in the main release.

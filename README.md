@@ -591,9 +591,17 @@ mypy autouam/
 
 ### Pre-commit Hooks
 
+Pre-commit hooks run various checks (formatting, linting, etc.) before each commit to ensure code quality. They are not automatically enforced and must be installed manually.
+
 ```bash
+# Install pre-commit hooks (required for development)
 pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
 ```
+
+**Note**: Pre-commit hooks cannot be automatically enforced. Each developer must install them manually using the command above.
 
 ### Releasing to PyPI
 

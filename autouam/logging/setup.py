@@ -13,12 +13,19 @@ from ..config.settings import LoggingConfig
 
 
 def setup_logging(config: LoggingConfig) -> None:
-    """Setup structured logging based on configuration."""
+    """Setup structured logging based on configuration.
 
-    # Clear existing handlers to prevent duplication
+    Note: This function only clears handlers from the autouam logger,
+    not the root logger, to avoid interfering with other packages.
+    """
+    # Only clear handlers from autouam logger, not root logger
+    # This prevents interference when used as a package
+    autouam_logger = logging.getLogger("autouam")
+    for handler in autouam_logger.handlers[:]:
+        autouam_logger.removeHandler(handler)
+
+    # Get root logger for handler setup, but don't clear its handlers
     root_logger = logging.getLogger()
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
 
     # Configure structlog
     structlog.configure(
@@ -39,8 +46,10 @@ def setup_logging(config: LoggingConfig) -> None:
         cache_logger_on_first_use=True,
     )
 
-    # Set log level
-    root_logger.setLevel(getattr(logging, config.level.upper()))
+    # Set log level on both root and autouam loggers
+    log_level = getattr(logging, config.level.upper())
+    root_logger.setLevel(log_level)
+    autouam_logger.setLevel(log_level)
 
     # Configure appropriate handler based on output type
     if config.output == "file" and config.file_path:

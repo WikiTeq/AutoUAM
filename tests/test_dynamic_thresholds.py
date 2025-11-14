@@ -158,9 +158,9 @@ class TestUAMManagerDynamicThresholds:
             deployment={"mode": "daemon"},
         )
 
-    @patch("os.path.exists", return_value=True)
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
     async def test_uam_manager_relative_thresholds_enabled(
-        self, mock_exists, config_with_relative_thresholds
+        self, mock_validate, config_with_relative_thresholds
     ):
         """Test UAM manager with relative thresholds enabled."""
         manager = UAMManager(config_with_relative_thresholds)
@@ -200,9 +200,9 @@ class TestUAMManagerDynamicThresholds:
                 assert call_args[1]["is_enabled"] is True
                 assert "relative" in call_args[1]["reason"]
 
-    @patch("os.path.exists", return_value=True)
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
     async def test_uam_manager_absolute_thresholds(
-        self, mock_exists, config_with_absolute_thresholds
+        self, mock_validate, config_with_absolute_thresholds
     ):
         """Test UAM manager with absolute thresholds."""
         manager = UAMManager(config_with_absolute_thresholds)
@@ -238,9 +238,9 @@ class TestUAMManagerDynamicThresholds:
                 assert call_args[1]["is_enabled"] is True
                 assert "relative" not in call_args[1]["reason"]
 
-    @patch("os.path.exists", return_value=True)
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
     async def test_uam_manager_baseline_update_triggered(
-        self, mock_exists, config_with_relative_thresholds
+        self, mock_validate, config_with_relative_thresholds
     ):
         """Test that baseline update is triggered when needed."""
         manager = UAMManager(config_with_relative_thresholds)
@@ -277,9 +277,9 @@ class TestUAMManagerDynamicThresholds:
                     24
                 )  # baseline_calculation_hours
 
-    @patch("os.path.exists", return_value=True)
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
     async def test_uam_manager_relative_thresholds_no_baseline(
-        self, mock_exists, config_with_relative_thresholds
+        self, mock_validate, config_with_relative_thresholds
     ):
         """Test UAM manager with relative thresholds but no baseline available."""
         manager = UAMManager(config_with_relative_thresholds)
@@ -323,8 +323,8 @@ class TestUAMManagerDynamicThresholds:
 class TestDynamicThresholdIntegration:
     """Integration tests for dynamic thresholds."""
 
-    @patch("os.path.exists", return_value=True)
-    def test_end_to_end_relative_threshold_workflow(self, mock_exists):
+    @patch("autouam.core.monitor.LoadMonitor._validate_platform")
+    def test_end_to_end_relative_threshold_workflow(self, mock_validate):
         """Test end-to-end workflow with relative thresholds."""
         from autouam.config.settings import LoadThresholds
         from autouam.core.monitor import LoadMonitor
