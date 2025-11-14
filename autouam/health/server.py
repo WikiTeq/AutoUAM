@@ -1,6 +1,6 @@
 """HTTP health server for AutoUAM."""
 
-import asyncio
+import time
 from typing import Optional
 
 from aiohttp import web
@@ -72,7 +72,7 @@ class HealthServer:
                 {
                     "status": "error",
                     "error": str(e),
-                    "timestamp": asyncio.get_event_loop().time(),
+                    "timestamp": time.time(),
                 },
                 status=500,
                 content_type="application/json",
@@ -125,7 +125,7 @@ class HealthServer:
             return web.json_response(
                 {
                     "ready": is_healthy,
-                    "timestamp": asyncio.get_event_loop().time(),
+                    "timestamp": time.time(),
                 },
                 status=status_code,
             )
@@ -136,7 +136,7 @@ class HealthServer:
                 {
                     "ready": False,
                     "error": str(e),
-                    "timestamp": asyncio.get_event_loop().time(),
+                    "timestamp": time.time(),
                 },
                 status=503,
             )
@@ -147,7 +147,7 @@ class HealthServer:
         return web.json_response(
             {
                 "alive": True,
-                "timestamp": asyncio.get_event_loop().time(),
+                "timestamp": time.time(),
             }
         )
 
