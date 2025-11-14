@@ -123,6 +123,7 @@ class TestUAMManagerIntegration:
             )
             mock_client_instance.__aexit__ = AsyncMock(return_value=None)
             mock_client_instance.test_connection = AsyncMock(return_value=True)
+            mock_client_instance.enable_under_attack_mode = AsyncMock()
             mock_client_class.return_value = mock_client_instance
 
             # Mock high load
@@ -176,28 +177,24 @@ class TestUAMManagerIntegration:
             mock_client_instance.__aexit__ = AsyncMock(return_value=None)
             mock_client_instance.test_connection = AsyncMock(return_value=True)
             mock_client_instance.enable_under_attack_mode = AsyncMock(
-                side_effect=[
-                    ClientResponseError(
-                        request_info=MagicMock(),
-                        history=[],
-                        status=429,
-                        message="Rate limited",
-                    ),
-                    {"success": True},  # Second call succeeds
-                ]
+                side_effect=ClientResponseError(
+                    request_info=MagicMock(),
+                    history=[],
+                    status=429,
+                    message="Rate limited",
+                )
             )
             mock_client_class.return_value = mock_client_instance
 
             manager = UAMManager(mock_settings)
             await manager.initialize()
 
-            # This will fail because the CloudflareClient's retry logic is not being
-            # tested here. The rate limiting happens inside the CloudflareClient, not
-            # at the UAMManager level
-            result = await manager.enable_uam_manual()
+            # Since we removed exception suppression, exceptions now propagate
+            # Rate limiting should raise an exception
+            with pytest.raises(ClientResponseError) as exc_info:
+                await manager.enable_uam_manual()
 
-            # Should fail due to the rate limit error
-            assert result is False
+            assert exc_info.value.status == 429
 
 
 class TestHealthCheckerIntegration:

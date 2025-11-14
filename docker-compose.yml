@@ -3,20 +3,13 @@ services:
     build: .
     restart: always
     environment:
-      - CF_API_TOKEN=${CF_API_TOKEN}
-      - CF_ZONE_ID=${CF_ZONE_ID}
-      - CF_EMAIL=${CF_EMAIL:-contact@wikiteq.com}
+      - CF_API_TOKEN
+      - CF_ZONE_ID
+      - CF_EMAIL
     volumes:
-      - autouam_logs:/var/log/autouam
-      - ./docker/config.yaml:/etc/autouam/config.yaml:ro
-    ports:
-      - "8080:8080"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+      - ./logs:/var/log/autouam
+      - ./state:/var/lib/autouam
+      - ./config.yaml:/etc/autouam/config.yaml:ro
 
 volumes:
   autouam_logs:

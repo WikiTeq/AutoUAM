@@ -1,13 +1,12 @@
 """UAM management logic for AutoUAM."""
 
 import asyncio
-from typing import Optional
 
 import aiohttp
 
 from ..config.settings import Settings
 from ..logging.setup import get_logger
-from .cloudflare import CloudflareClient, CloudflareError
+from .cloudflare import CloudflareClient
 from .monitor import LoadMonitor
 from .state import StateManager, UAMState
 
@@ -41,14 +40,20 @@ class UAMManager:
         # Initialize components
         self.monitor = LoadMonitor()
         self.state_manager = StateManager()
-        self.cloudflare_client: Optional[CloudflareClient] = None
+        # CloudflareClient is required - initialize it immediately
+        self.cloudflare_client = CloudflareClient(
+            api_token=self.config.cloudflare.api_token,
+            zone_id=self.config.cloudflare.zone_id,
+            base_url=self.config.cloudflare.base_url
+            or "https://api.cloudflare.com/client/v4",
+        )
 
         # Control flags
         self._running = False
         self._stop_event = asyncio.Event()
 
     async def initialize(self) -> bool:
-        """Initialize the UAM manager.
+        """Initialize the UAM manager and test Cloudflare connection.
 
         Returns:
             bool: True if initialization succeeded, False otherwise.
@@ -57,15 +62,7 @@ class UAMManager:
             UAMManagerInitializationError: For fatal errors that prevent initialization.
         """
         try:
-            # Initialize Cloudflare client
-            self.cloudflare_client = CloudflareClient(
-                api_token=self.config.cloudflare.api_token,
-                zone_id=self.config.cloudflare.zone_id,
-                base_url=self.config.cloudflare.base_url
-                or "https://api.cloudflare.com/client/v4",
-            )
-
-            # Test Cloudflare connection
+            # Test Cloudflare connection (client already initialized in __init__)
             async with self.cloudflare_client as client:
                 if not await client.test_connection():
                     self.logger.error("Failed to connect to Cloudflare API")
@@ -95,9 +92,6 @@ class UAMManager:
 
     async def _sync_state_with_cloudflare(self) -> None:
         """Sync internal state with actual Cloudflare state."""
-        if not self.cloudflare_client:
-            self.logger.error("Cloudflare client not initialized")
-            return
 
         try:
             # Get current Cloudflare security level
@@ -295,160 +289,96 @@ class UAMManager:
                     load_average=load_average,
                 )
 
-        # Update state if no action was taken
-        else:
-            reason = "No action needed"
-            if current_state.is_enabled:
-                reason = "UAM active, load within acceptable range"
-            else:
-                reason = "Load within normal range"
-
-            self.state_manager.update_state(
-                is_enabled=current_state.is_enabled,
-                load_average=load_average,
-                threshold_used=(
-                    upper_threshold if current_state.is_enabled else lower_threshold
-                ),
-                reason=reason,
-            )
+        # Skip state update when no action is needed
+        # State will be updated when an action is actually taken
 
     async def _enable_uam(
         self, load_average: float, threshold: float, reason: str
     ) -> None:
         """Enable Under Attack Mode."""
-        if not self.cloudflare_client:
-            self.logger.error("Cloudflare client not initialized")
-            return
+        self.logger.warning(
+            "Enabling Under Attack Mode",
+            load_average=load_average,
+            threshold=threshold,
+            reason=reason,
+        )
 
-        try:
-            self.logger.warning(
-                "Enabling Under Attack Mode",
-                load_average=load_average,
-                threshold=threshold,
-                reason=reason,
-            )
+        async with self.cloudflare_client as client:
+            await client.enable_under_attack_mode()
 
-            async with self.cloudflare_client as client:
-                await client.enable_under_attack_mode()
+        # Update state
+        self.state_manager.update_state(
+            is_enabled=True,
+            load_average=load_average,
+            threshold_used=threshold,
+            reason=reason,
+        )
 
-            # Update state
-            self.state_manager.update_state(
-                is_enabled=True,
-                load_average=load_average,
-                threshold_used=threshold,
-                reason=reason,
-            )
-
-            self.logger.info("Under Attack Mode enabled successfully")
-
-        except CloudflareError as e:
-            self.logger.error("Failed to enable Under Attack Mode", error=str(e))
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            self.logger.error("Network error enabling Under Attack Mode", error=str(e))
-        except Exception as e:
-            self.logger.error(
-                "Unexpected error enabling Under Attack Mode", error=str(e)
-            )
+        self.logger.info("Under Attack Mode enabled successfully")
 
     async def _disable_uam(
         self, load_average: float, threshold: float, reason: str
     ) -> None:
         """Disable Under Attack Mode."""
-        if not self.cloudflare_client:
-            self.logger.error("Cloudflare client not initialized")
-            return
+        self.logger.info(
+            "Disabling Under Attack Mode",
+            load_average=load_average,
+            threshold=threshold,
+            reason=reason,
+        )
 
-        try:
-            self.logger.info(
-                "Disabling Under Attack Mode",
-                load_average=load_average,
-                threshold=threshold,
-                reason=reason,
+        async with self.cloudflare_client as client:
+            await client.disable_under_attack_mode(
+                regular_mode=self.config.security.regular_mode
             )
 
-            async with self.cloudflare_client as client:
-                await client.disable_under_attack_mode(
-                    regular_mode=self.config.security.regular_mode
-                )
+        # Update state
+        self.state_manager.update_state(
+            is_enabled=False,
+            load_average=load_average,
+            threshold_used=threshold,
+            reason=reason,
+        )
 
-            # Update state
-            self.state_manager.update_state(
-                is_enabled=False,
-                load_average=load_average,
-                threshold_used=threshold,
-                reason=reason,
-            )
-
-            self.logger.info("Under Attack Mode disabled successfully")
-
-        except CloudflareError as e:
-            self.logger.error("Failed to disable Under Attack Mode", error=str(e))
-        except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            self.logger.error("Network error disabling Under Attack Mode", error=str(e))
-        except Exception as e:
-            self.logger.error(
-                "Unexpected error disabling Under Attack Mode", error=str(e)
-            )
+        self.logger.info("Under Attack Mode disabled successfully")
 
     async def enable_uam_manual(self) -> bool:
         """Manually enable Under Attack Mode."""
-        if not self.cloudflare_client:
-            self.logger.error("Cloudflare client not initialized")
-            return False
+        self.logger.info("Manually enabling Under Attack Mode")
 
-        try:
-            self.logger.info("Manually enabling Under Attack Mode")
+        async with self.cloudflare_client as client:
+            await client.enable_under_attack_mode()
 
-            async with self.cloudflare_client as client:
-                await client.enable_under_attack_mode()
+        # Update state
+        self.state_manager.update_state(
+            is_enabled=True,
+            load_average=0.0,  # Not relevant for manual action
+            threshold_used=0.0,
+            reason="Manual enable",
+        )
 
-            # Update state
-            self.state_manager.update_state(
-                is_enabled=True,
-                load_average=0.0,  # Not relevant for manual action
-                threshold_used=0.0,
-                reason="Manual enable",
-            )
-
-            self.logger.info("Under Attack Mode manually enabled")
-            return True
-
-        except Exception as e:
-            self.logger.error(
-                "Failed to manually enable Under Attack Mode", error=str(e)
-            )
-            return False
+        self.logger.info("Under Attack Mode manually enabled")
+        return True
 
     async def disable_uam_manual(self) -> bool:
         """Manually disable Under Attack Mode."""
-        if not self.cloudflare_client:
-            self.logger.error("Cloudflare client not initialized")
-            return False
+        self.logger.info("Manually disabling Under Attack Mode")
 
-        try:
-            self.logger.info("Manually disabling Under Attack Mode")
-
-            async with self.cloudflare_client as client:
-                await client.disable_under_attack_mode(
-                    regular_mode=self.config.security.regular_mode
-                )
-
-            # Update state
-            self.state_manager.update_state(
-                is_enabled=False,
-                load_average=0.0,  # Not relevant for manual action
-                threshold_used=0.0,
-                reason="Manual disable",
+        async with self.cloudflare_client as client:
+            await client.disable_under_attack_mode(
+                regular_mode=self.config.security.regular_mode
             )
 
-            self.logger.info("Under Attack Mode manually disabled")
-            return True
+        # Update state
+        self.state_manager.update_state(
+            is_enabled=False,
+            load_average=0.0,  # Not relevant for manual action
+            threshold_used=0.0,
+            reason="Manual disable",
+        )
 
-        except Exception as e:
-            self.logger.error(
-                "Failed to manually disable Under Attack Mode", error=str(e)
-            )
-            return False
+        self.logger.info("Under Attack Mode manually disabled")
+        return True
 
     def get_status(self) -> dict:
         """Get current status information."""
@@ -477,26 +407,6 @@ class UAMManager:
         self._running = False
         self._stop_event.set()
         self.logger.info("UAM manager stop requested")
-
-    async def _handle_graceful_degradation(self, error: Exception) -> None:
-        """Handle graceful degradation when errors occur."""
-        self.logger.warning(
-            "Entering graceful degradation mode",
-            error_type=type(error).__name__,
-            error=str(error),
-        )
-
-        # Continue monitoring but with reduced functionality
-        # State management and logging still work
-        try:
-            # Get current state without Cloudflare operations
-            current_state = self.state_manager.load_state()
-            self.logger.info(
-                "Continuing in degraded mode",
-                current_state_enabled=current_state.is_enabled,
-            )
-        except Exception as e:
-            self.logger.error("Failed to get state in degraded mode", error=str(e))
 
     async def check_once(self) -> dict:
         """Perform a single check without starting the monitoring loop."""

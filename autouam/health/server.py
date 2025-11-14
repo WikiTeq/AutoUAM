@@ -1,10 +1,11 @@
 """HTTP health server for AutoUAM."""
 
-import asyncio
+import time
 from typing import Optional
 
 from aiohttp import web
 
+from .. import __version__
 from ..config.settings import Settings
 from ..logging.setup import get_logger
 from .checks import HealthChecker
@@ -32,7 +33,6 @@ class HealthServer:
             self.config.health.metrics_endpoint, self._metrics_handler
         )
         self.app.router.add_get("/", self._root_handler)
-        self.app.router.add_get("/ready", self._ready_handler)
         self.app.router.add_get("/live", self._live_handler)
 
     async def _health_handler(self, request: web.Request) -> web.Response:
@@ -72,7 +72,7 @@ class HealthServer:
                 {
                     "status": "error",
                     "error": str(e),
-                    "timestamp": asyncio.get_event_loop().time(),
+                    "timestamp": time.time(),
                 },
                 status=500,
                 content_type="application/json",
@@ -93,10 +93,13 @@ class HealthServer:
 
         except Exception as e:
             self.logger.error("Metrics handler error", error=str(e))
-            return web.Response(
-                text=f"# Error generating metrics: {e}\n",
+            # Return proper error response instead of empty result
+            return web.json_response(
+                {
+                    "error": "Failed to generate metrics",
+                    "message": str(e),
+                },
                 status=500,
-                content_type="text/plain",
             )
 
     async def _root_handler(self, request: web.Request) -> web.Response:
@@ -104,42 +107,14 @@ class HealthServer:
         return web.json_response(
             {
                 "service": "AutoUAM Health Server",
-                "version": __import__("autouam").__version__,
+                "version": __version__,
                 "endpoints": {
                     "health": self.config.health.endpoint,
                     "metrics": self.config.health.metrics_endpoint,
-                    "ready": "/ready",
                     "live": "/live",
                 },
             }
         )
-
-    async def _ready_handler(self, request: web.Request) -> web.Response:
-        """Handle readiness probe requests."""
-        try:
-            # Quick health check
-            is_healthy = self.health_checker.is_healthy()
-
-            status_code = 200 if is_healthy else 503
-
-            return web.json_response(
-                {
-                    "ready": is_healthy,
-                    "timestamp": asyncio.get_event_loop().time(),
-                },
-                status=status_code,
-            )
-
-        except Exception as e:
-            self.logger.error("Readiness probe error", error=str(e))
-            return web.json_response(
-                {
-                    "ready": False,
-                    "error": str(e),
-                    "timestamp": asyncio.get_event_loop().time(),
-                },
-                status=503,
-            )
 
     async def _live_handler(self, request: web.Request) -> web.Response:
         """Handle liveness probe requests."""
@@ -147,7 +122,7 @@ class HealthServer:
         return web.json_response(
             {
                 "alive": True,
-                "timestamp": asyncio.get_event_loop().time(),
+                "timestamp": time.time(),
             }
         )
 

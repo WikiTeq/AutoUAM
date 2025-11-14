@@ -286,11 +286,6 @@ class HealthChecker:
                             "status": "Cloudflare API connection failed",
                         }
 
-                    # Get current security level with timeout
-                    security_level = await asyncio.wait_for(
-                        client.get_current_security_level(), timeout=self._api_timeout
-                    )
-
                     # Success - reset failure counters
                     self._consecutive_failures = 0
                     self._last_success = time.time()
@@ -298,7 +293,6 @@ class HealthChecker:
                     return {
                         "healthy": True,
                         "status": "Cloudflare API healthy",
-                        "security_level": security_level,
                     }
 
             except asyncio.TimeoutError:

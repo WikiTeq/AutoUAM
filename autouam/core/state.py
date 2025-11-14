@@ -5,7 +5,7 @@ import os
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from ..logging.setup import get_logger
 
@@ -22,12 +22,12 @@ class UAMState:
     enabled_at: Optional[float] = None
     disabled_at: Optional[float] = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "UAMState":
+    def from_dict(cls, data: Dict[str, Any]) -> "UAMState":
         """Create from dictionary with validation."""
         # Validate required fields
         required_fields = [
@@ -331,7 +331,7 @@ class StateManager:
 
         return can_disable
 
-    def get_state_summary(self) -> dict:
+    def get_state_summary(self) -> Dict[str, Any]:
         """Get a summary of current state."""
         # Force reload from file to get the latest state
         self._state = None

@@ -4,7 +4,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import click
 import yaml
@@ -14,6 +14,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.text import Text
 
+from .. import __version__
 from ..config.settings import Settings
 from ..config.validators import (
     generate_sample_config,
@@ -51,7 +52,7 @@ def print_info(message: str) -> None:
 class CLIContext:
     """CLI context object to hold shared state."""
 
-    def __init__(self, settings: Optional[Settings] = None, **kwargs):
+    def __init__(self, settings: Optional[Settings] = None, **kwargs) -> None:
         self.settings = settings
         self.config_path = kwargs.get("config_path")
         self.log_level = kwargs.get("log_level", "INFO")
@@ -62,7 +63,7 @@ class CLIContext:
 
 
 @click.group()
-@click.version_option(version=__import__("autouam").__version__, prog_name="autouam")
+@click.version_option(version=__version__, prog_name="autouam")
 @click.option(
     "--config", "-c", type=click.Path(exists=True), help="Configuration file path"
 )
@@ -502,7 +503,7 @@ def metrics(ctx: click.Context) -> None:
         sys.exit(1)
 
 
-def display_status(result: dict) -> None:
+def display_status(result: Dict[str, Any]) -> None:
     """Display status in a formatted table."""
     if "error" in result:
         print_error(result["error"])
@@ -570,7 +571,7 @@ def display_status(result: dict) -> None:
     console.print(config_table)
 
 
-def display_health_result(result: dict) -> None:
+def display_health_result(result: Dict[str, Any]) -> None:
     """Display health check result."""
     if result["healthy"]:
         print_success("Health check passed")
