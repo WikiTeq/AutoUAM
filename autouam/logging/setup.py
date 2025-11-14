@@ -4,7 +4,7 @@ import logging
 import logging.handlers
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import structlog
 from structlog.stdlib import LoggerFactory
@@ -52,7 +52,7 @@ def setup_logging(config: LoggingConfig) -> None:
         _setup_stream_handler(config)
 
 
-def _get_renderer(format_type: str):
+def _get_renderer(format_type: str) -> Any:
     """Get the appropriate renderer based on format type."""
     if format_type == "json":
         return structlog.processors.JSONRenderer()

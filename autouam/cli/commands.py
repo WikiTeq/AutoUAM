@@ -4,7 +4,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import click
 import yaml
@@ -52,7 +52,7 @@ def print_info(message: str) -> None:
 class CLIContext:
     """CLI context object to hold shared state."""
 
-    def __init__(self, settings: Optional[Settings] = None, **kwargs):
+    def __init__(self, settings: Optional[Settings] = None, **kwargs) -> None:
         self.settings = settings
         self.config_path = kwargs.get("config_path")
         self.log_level = kwargs.get("log_level", "INFO")
@@ -503,7 +503,7 @@ def metrics(ctx: click.Context) -> None:
         sys.exit(1)
 
 
-def display_status(result: dict) -> None:
+def display_status(result: Dict[str, Any]) -> None:
     """Display status in a formatted table."""
     if "error" in result:
         print_error(result["error"])
@@ -571,7 +571,7 @@ def display_status(result: dict) -> None:
     console.print(config_table)
 
 
-def display_health_result(result: dict) -> None:
+def display_health_result(result: Dict[str, Any]) -> None:
     """Display health check result."""
     if result["healthy"]:
         print_success("Health check passed")
