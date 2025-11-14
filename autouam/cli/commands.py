@@ -263,8 +263,8 @@ def health() -> None:
     pass
 
 
-@health.command()
-def check() -> None:
+@health.command(name="check")
+def health_check() -> None:
     """Perform health check."""
     if not _settings:
         console.print("[red]Error: Configuration file is required[/red]")
@@ -325,11 +325,6 @@ def display_status(result: dict[str, Any]) -> None:
 
         if "cpu_count" in system:
             system_table.add_row("CPU Count", str(system["cpu_count"]))
-
-        if "processes" in system:
-            processes = system["processes"]
-            system_table.add_row("Running Processes", str(processes["running"]))
-            system_table.add_row("Total Processes", str(processes["total"]))
 
     console.print(system_table)
 
