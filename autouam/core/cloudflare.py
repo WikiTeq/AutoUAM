@@ -1,15 +1,44 @@
 """Cloudflare API client for AutoUAM."""
 
+import asyncio
+
 import aiohttp
 
 from .. import __version__
 from ..logging.setup import get_logger
+
+# Max retries for transient network errors (e.g. Broken pipe)
+MAX_REQUEST_RETRIES = 3
+# Backoff base seconds: 1, 2, 4
+RETRY_BACKOFF_BASE = 1
 
 
 class CloudflareError(Exception):
     """Base exception for Cloudflare API errors."""
 
     pass
+
+
+def _is_retryable_error(exc: BaseException) -> bool:
+    """True if the error is transient and retrying with a new connection may help."""
+    if isinstance(exc, (BrokenPipeError, ConnectionError)):
+        return True
+    if isinstance(exc, OSError) and getattr(exc, "errno", None) == 32:
+        return True  # errno 32 is EPIPE (Broken pipe)
+    if isinstance(
+        exc,
+        (
+            aiohttp.ClientError,
+            aiohttp.ServerDisconnectedError,
+            aiohttp.ClientConnectorError,
+            ConnectionResetError,
+        ),
+    ):
+        return True
+    # aiohttp wraps OSError in ClientOSError
+    if type(exc).__name__ == "ClientOSError" and getattr(exc, "os_error", None):
+        return _is_retryable_error(exc.os_error)
+    return False
 
 
 class CloudflareClient:
@@ -36,20 +65,51 @@ class CloudflareClient:
             )
         return self._session
 
+    async def _close_session(self) -> None:
+        """Close and clear the session so next request uses a fresh connection."""
+        if self._session:
+            await self._session.close()
+            self._session = None
+
     async def _request(self, method: str, endpoint: str, data=None) -> dict:
-        """Make an API request."""
-        session = await self._get_session()
+        """Make an API request with retries on transient errors (e.g. Broken pipe)."""
         url = f"{self.base_url}{endpoint}"
+        last_exc = None
 
-        async with session.request(method, url, json=data) as response:
-            result = await response.json()
+        for attempt in range(1, MAX_REQUEST_RETRIES + 1):
+            try:
+                session = await self._get_session()
+                async with session.request(method, url, json=data) as response:
+                    result = await response.json()
 
-            if not result.get("success"):
-                errors = result.get("errors", [])
-                error_msg = "; ".join(e.get("message", "Unknown error") for e in errors)
-                raise CloudflareError(f"API request failed: {error_msg}")
+                    if not result.get("success"):
+                        errors = result.get("errors", [])
+                        error_msg = "; ".join(
+                            e.get("message", "Unknown error") for e in errors
+                        )
+                        raise CloudflareError(f"API request failed: {error_msg}")
 
-            return result
+                    return result
+            except CloudflareError:
+                raise
+            except Exception as e:
+                last_exc = e
+                if _is_retryable_error(e) and attempt < MAX_REQUEST_RETRIES:
+                    wait_time = RETRY_BACKOFF_BASE * (2 ** (attempt - 1))
+                    self.logger.warning(
+                        "Network error, retrying",
+                        extra={
+                            "error": str(e),
+                            "attempt": attempt,
+                            "wait_time": wait_time,
+                        },
+                    )
+                    await self._close_session()
+                    await asyncio.sleep(wait_time)
+                else:
+                    raise
+
+        raise last_exc
 
     async def close(self) -> None:
         """Close the session."""
