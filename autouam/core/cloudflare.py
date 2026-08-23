@@ -5,6 +5,11 @@ import aiohttp
 from .. import __version__
 from ..logging.setup import get_logger
 
+# Hard cap for any single Cloudflare API request. The README documents a
+# 10-second API timeout; without this, aiohttp's silent default (300s total)
+# would stall the monitoring loop for ~5 check intervals per stalled call.
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=10)
+
 
 class CloudflareError(Exception):
     """Base exception for Cloudflare API errors."""
@@ -28,11 +33,12 @@ class CloudflareClient:
             if self._session:
                 await self._session.close()
             self._session = aiohttp.ClientSession(
+                timeout=REQUEST_TIMEOUT,
                 headers={
                     "Authorization": f"Bearer {self.api_token}",
                     "Content-Type": "application/json",
                     "User-Agent": f"AutoUAM/{__version__}",
-                }
+                },
             )
         return self._session
 
