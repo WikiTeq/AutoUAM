@@ -1,10 +1,34 @@
 """Logging setup for AutoUAM."""
 
+import json
 import logging
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from ..config.settings import LoggingConfig
+
+
+class JsonFormatter(logging.Formatter):
+    """Format log records as one JSON object per line.
+
+    Uses json.dumps so message content is always escaped correctly; the
+    previous %-template approach emitted unparseable lines whenever a
+    message contained a quote or backslash.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": datetime.fromtimestamp(
+                record.created, tz=timezone.utc
+            ).isoformat(),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exc_info"] = self.formatException(record.exc_info)
+        return json.dumps(payload)
 
 
 def setup_logging(config: LoggingConfig) -> None:
@@ -20,10 +44,7 @@ def setup_logging(config: LoggingConfig) -> None:
 
     # Create formatter
     if config.format == "json":
-        formatter = logging.Formatter(
-            '{"timestamp": "%(asctime)s", "level": '
-            '"%(levelname)s", "message": "%(message)s"}'
-        )
+        formatter = JsonFormatter()
     else:
         formatter = logging.Formatter(
             "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
