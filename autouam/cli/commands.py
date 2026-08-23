@@ -110,6 +110,9 @@ def check() -> None:
                 console.print(yaml.dump(result, default_flow_style=False))
             else:
                 display_status(result)
+        except Exception as e:
+            console.print(f"[red]Error: check failed: {e}[/red]")
+            sys.exit(1)
         finally:
             uam_manager.stop()
 
