@@ -4,7 +4,7 @@
 
 Automated Cloudflare Under Attack Mode management based on server load metrics.
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
@@ -31,7 +31,7 @@ pip install autouam
 ```
 
 **Requirements:**
-- Python 3.8+ with pip
+- Python 3.10+ with pip
 - The `autouam` command will be installed to `~/.local/bin/` (user installation) or `/usr/local/bin/` (system installation)
 - **Note:** If installed to `~/.local/bin/`, add it to your PATH: `export PATH=$PATH:~/.local/bin`
 
@@ -50,7 +50,7 @@ pip install -e ".[dev]"
 ```
 
 **Requirements:**
-- Python 3.8+ with venv support
+- Python 3.10+ with venv support
 - Git for cloning the repository
 - Build tools (usually included with python3-dev)
 
