@@ -191,14 +191,19 @@ class UAMManager:
         self._running = False
 
     async def check_once(self) -> dict:
-        """Perform a single check."""
-        if not await self.initialize():
-            return {"error": "Failed to initialize"}
+        """Perform a single check.
 
-        try:
-            load_average = self.monitor.get_normalized_load()
-            current_state = self.state_manager.load_state()
-            await self._evaluate_and_act(load_average, current_state)
-            return self.get_status()
-        except Exception as e:
-            return {"error": str(e)}
+        Raises RuntimeError on failure so CLI callers can exit non-zero;
+        swallowing errors here made `autouam check` report success even
+        when the check could not run.
+        """
+        if not await self.initialize():
+            raise RuntimeError(
+                "Failed to initialize: Cloudflare API is unreachable or "
+                "credentials/zone are invalid"
+            )
+
+        load_average = self.monitor.get_normalized_load()
+        current_state = self.state_manager.load_state()
+        await self._evaluate_and_act(load_average, current_state)
+        return self.get_status()
