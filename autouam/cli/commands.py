@@ -4,7 +4,7 @@ import asyncio
 import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import click
 import yaml
@@ -23,9 +23,15 @@ from ..logging.setup import setup_logging
 
 console = Console()
 
-# Global state
-_settings: Settings | None = None
-_output_format: str = "text"
+
+class CLIContext:
+    """CLI context object to hold shared state."""
+
+    def __init__(
+        self, settings: Settings | None = None, output_format: str = "text"
+    ) -> None:
+        self.settings = settings
+        self.output_format = output_format
 
 
 @click.group()
@@ -40,16 +46,15 @@ _output_format: str = "text"
     default="INFO",
 )
 @click.option("--format", type=click.Choice(["json", "yaml", "text"]), default="text")
-def main(config: str | None, log_level: str, format: str) -> None:
+@click.pass_context
+def main(ctx: click.Context, config: str | None, log_level: str, format: str) -> None:
     """AutoUAM - Automated Cloudflare Under Attack Mode management."""
-    global _settings, _output_format
-    _settings = None
-    _output_format = format
+    settings: Settings | None = None
 
     if config:
         try:
-            _settings = Settings.from_file(Path(config))
-            setup_logging(_settings.logging)
+            settings = Settings.from_file(Path(config))
+            setup_logging(settings.logging)
         except Exception as e:
             console.print(f"[red]Error: Failed to load configuration: {e}[/red]")
             sys.exit(1)
@@ -60,25 +65,32 @@ def main(config: str | None, log_level: str, format: str) -> None:
         logging_config = LoggingConfig(level=log_level, output="stdout", format="text")
         setup_logging(logging_config)
 
+    # Create and set context object
+    ctx.obj = CLIContext(settings=settings, output_format=format)
+
 
 @main.command()
-def daemon() -> None:
+@click.pass_obj
+def daemon(ctx: CLIContext) -> None:
     """Run AutoUAM as a daemon."""
-    if not _settings:
+    if not ctx.settings:
         console.print(
             "[red]Error: Configuration file is required for daemon mode[/red]"
         )
         sys.exit(1)
 
+    # Type narrowing: we've checked that settings is not None
+    settings = cast(Settings, ctx.settings)
+
     async def run_daemon() -> None:
-        uam_manager = UAMManager(_settings)
+        uam_manager = UAMManager(settings)
 
         # Start health server if enabled
         health_server = None
-        if _settings.health.enabled:
-            health_checker = HealthChecker(_settings)
+        if settings.health.enabled:
+            health_checker = HealthChecker(settings)
             await health_checker.initialize()
-            health_server = HealthServer(_settings, health_checker)
+            health_server = HealthServer(settings, health_checker)
             await health_server.start()
 
         try:
@@ -94,19 +106,23 @@ def daemon() -> None:
 
 
 @main.command()
-def check() -> None:
+@click.pass_obj
+def check(ctx: CLIContext) -> None:
     """Perform a one-time check."""
-    if not _settings:
+    if not ctx.settings:
         console.print("[red]Error: Configuration file is required[/red]")
         sys.exit(1)
 
+    # Type narrowing: we've checked that settings is not None
+    settings = cast(Settings, ctx.settings)
+
     async def run_check() -> None:
-        uam_manager = UAMManager(_settings)
+        uam_manager = UAMManager(settings)
         try:
             result = await uam_manager.check_once()
-            if _output_format == "json":
+            if ctx.output_format == "json":
                 console.print(json.dumps(result, indent=2))
-            elif _output_format == "yaml":
+            elif ctx.output_format == "yaml":
                 console.print(yaml.dump(result, default_flow_style=False))
             else:
                 display_status(result)
@@ -120,14 +136,18 @@ def check() -> None:
 
 
 @main.command()
-def enable() -> None:
+@click.pass_obj
+def enable(ctx: CLIContext) -> None:
     """Manually enable Under Attack Mode."""
-    if not _settings:
+    if not ctx.settings:
         console.print("[red]Error: Configuration file is required[/red]")
         sys.exit(1)
 
+    # Type narrowing: we've checked that settings is not None
+    settings = cast(Settings, ctx.settings)
+
     async def run_enable() -> None:
-        uam_manager = UAMManager(_settings)
+        uam_manager = UAMManager(settings)
         try:
             success = await uam_manager.enable_uam_manual()
             if success:
@@ -142,14 +162,18 @@ def enable() -> None:
 
 
 @main.command()
-def disable() -> None:
+@click.pass_obj
+def disable(ctx: CLIContext) -> None:
     """Manually disable Under Attack Mode."""
-    if not _settings:
+    if not ctx.settings:
         console.print("[red]Error: Configuration file is required[/red]")
         sys.exit(1)
 
+    # Type narrowing: we've checked that settings is not None
+    settings = cast(Settings, ctx.settings)
+
     async def run_disable() -> None:
-        uam_manager = UAMManager(_settings)
+        uam_manager = UAMManager(settings)
         try:
             success = await uam_manager.disable_uam_manual()
             if success:
@@ -164,19 +188,23 @@ def disable() -> None:
 
 
 @main.command()
-def status() -> None:
+@click.pass_obj
+def status(ctx: CLIContext) -> None:
     """Show current status."""
-    if not _settings:
+    if not ctx.settings:
         console.print("[red]Error: Configuration file is required[/red]")
         sys.exit(1)
 
+    # Type narrowing: we've checked that settings is not None
+    settings = cast(Settings, ctx.settings)
+
     async def run_status() -> None:
-        uam_manager = UAMManager(_settings)
+        uam_manager = UAMManager(settings)
         try:
             result = uam_manager.get_status()
-            if _output_format == "json":
+            if ctx.output_format == "json":
                 console.print(json.dumps(result, indent=2))
-            elif _output_format == "yaml":
+            elif ctx.output_format == "yaml":
                 console.print(yaml.dump(result, default_flow_style=False))
             else:
                 display_status(result)
@@ -213,7 +241,8 @@ def validate(config_path: str) -> None:
 
 @config.command()
 @click.option("--output", "-o", type=click.Path(), help="Output file path")
-def generate(output: str | None) -> None:
+@click.pass_obj
+def generate(ctx: CLIContext, output: str | None) -> None:
     """Generate sample configuration."""
     sample_config = generate_sample_config()
 
@@ -224,9 +253,9 @@ def generate(output: str | None) -> None:
             yaml.dump(sample_config, f, default_flow_style=False, indent=2)
         console.print(f"[green]✓ Sample configuration written to {output}[/green]")
     else:
-        if _output_format == "json":
+        if ctx.output_format == "json":
             console.print(json.dumps(sample_config, indent=2))
-        elif _output_format == "yaml":
+        elif ctx.output_format == "yaml":
             console.print(yaml.dump(sample_config, default_flow_style=False))
         else:
             console.print(
@@ -239,16 +268,19 @@ def generate(output: str | None) -> None:
 
 
 @config.command()
-def show() -> None:
+@click.pass_obj
+def show(ctx: CLIContext) -> None:
     """Show current configuration."""
-    if not _settings:
+    if not ctx.settings:
         console.print("[red]Error: Configuration file is required[/red]")
         sys.exit(1)
 
-    config_dict = _settings.to_dict()
-    if _output_format == "json":
+    # Type narrowing: we've checked that settings is not None
+    settings = cast(Settings, ctx.settings)
+    config_dict = settings.to_dict()
+    if ctx.output_format == "json":
         console.print(json.dumps(config_dict, indent=2))
-    elif _output_format == "yaml":
+    elif ctx.output_format == "yaml":
         console.print(yaml.dump(config_dict, default_flow_style=False))
     else:
         console.print(
@@ -267,20 +299,24 @@ def health() -> None:
 
 
 @health.command(name="check")
-def health_check() -> None:
+@click.pass_obj
+def health_check(ctx: CLIContext) -> None:
     """Perform health check."""
-    if not _settings:
+    if not ctx.settings:
         console.print("[red]Error: Configuration file is required[/red]")
         sys.exit(1)
 
+    # Type narrowing: we've checked that settings is not None
+    settings = cast(Settings, ctx.settings)
+
     async def run_health_check() -> None:
-        health_checker = HealthChecker(_settings)
+        health_checker = HealthChecker(settings)
         await health_checker.initialize()
         result = await health_checker.check_health()
 
-        if _output_format == "json":
+        if ctx.output_format == "json":
             console.print(json.dumps(result, indent=2))
-        elif _output_format == "yaml":
+        elif ctx.output_format == "yaml":
             console.print(yaml.dump(result, default_flow_style=False))
         else:
             display_health_result(result)
@@ -289,14 +325,18 @@ def health_check() -> None:
 
 
 @health.command()
-def metrics() -> None:
+@click.pass_obj
+def metrics(ctx: CLIContext) -> None:
     """Show metrics."""
-    if not _settings:
+    if not ctx.settings:
         console.print("[red]Error: Configuration file is required[/red]")
         sys.exit(1)
 
+    # Type narrowing: we've checked that settings is not None
+    settings = cast(Settings, ctx.settings)
+
     async def run_metrics() -> None:
-        health_checker = HealthChecker(_settings)
+        health_checker = HealthChecker(settings)
         await health_checker.initialize()
         metrics_data = health_checker.get_metrics()
         console.print(metrics_data)
